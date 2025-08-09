@@ -1,4 +1,26 @@
-.Rproj.user
+# R/RStudio
+.Rproj.user/
 .Rhistory
 .RData
 .Ruserdata
+.Rapp.history
+
+# Packages/renv
+.Renv/
+renv/library/
+renv/staging/
+packrat/
+
+# OS/editor
+.DS_Store
+*.swp
+
+# Shiny/outputs
+*.html
+*.pdf
+*.png
+*.jpeg
+*.jpg
+*.rds
+*.qs
+

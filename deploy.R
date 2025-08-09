@@ -9,7 +9,7 @@ setAccountInfo(
 )
 
 # Deploy the app
-deployApp(appDir = "/Users/mateorodriguez/Desktop/analisis_CA/dashboard_cargas/t",
+deployApp(appDir = "/Users/mateorodriguez/Desktop/analisis_CA/dashboard_cargas",
           appName = "dashboard_cargas",
           account = Sys.getenv("'mateo-rodriguez-23'"),
           forceUpdate = TRUE)

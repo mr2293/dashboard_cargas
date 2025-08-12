@@ -11,7 +11,6 @@ WORKDIR /home/dashboard_cargas
 COPY app.R app.R
 COPY dashboard.R dashboard.R
 COPY dashboard_cargas.Rproj dashboard_cargas.Rproj
-COPY deploy_dashboard.R deploy_dashboard.R
 COPY deploy.R deploy.R
 
 # Copy the data and micros directories
@@ -25,4 +24,4 @@ COPY www/player_images /home/dashboard_cargas/www/player_images
 COPY rsconnect /home/dashboard_cargas/rsconnect
 
 # Set the command to deploy the app
-CMD Rscript deploy_dashboard.R
+CMD Rscript deploy.R

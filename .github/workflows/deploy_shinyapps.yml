@@ -2,7 +2,7 @@ name: Deploy Shiny App to ShinyApps.io
 
 on:
   schedule:
-    - cron: '15 9 * * *'  # Runs at 9:15 AM UTC every day
+    - cron: '15 15 * * *'  # Runs at 9:15 AM UTC every day
   workflow_dispatch:  # Allows manual trigger
 
 jobs:

@@ -12,6 +12,7 @@ COPY app.R app.R
 COPY dashboard.R dashboard.R
 COPY dashboard_cargas.Rproj dashboard_cargas.Rproj
 COPY deploy_dashboard.R deploy_dashboard.R
+COPY deploy.R deploy.R
 
 # Copy the data and micros directories
 COPY data /home/dashboard_cargas/data

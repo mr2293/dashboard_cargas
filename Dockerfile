@@ -1,10 +1,12 @@
 # Use the official Rocker image for Shiny
 FROM rocker/shiny:4.2.1
 
-# Install R dependencies for the Shiny app
-RUN install2.r --error \
-    tidyverse zoo reshape2 gt ggrepel lubridate readxl dplyr \
-    shiny plotly shinythemes rsconnect bslib reactable tibble stringr
+# Install latest R dependencies for the Shiny app
+RUN R -e "install.packages(c(
+  'tidyverse', 'zoo', 'reshape2', 'gt', 'ggrepel',
+  'lubridate', 'readxl', 'dplyr', 'shiny', 'plotly',
+  'shinythemes', 'bslib', 'reactable', 'tibble', 'stringr',
+  'rsconnect'), repos='https://cloud.r-project.org')"
 
 # Set the working directory inside the container
 WORKDIR /home/dashboard_cargas
@@ -20,4 +22,5 @@ COPY rsconnect /home/dashboard_cargas/rsconnect
 
 # Run deploy.R when container starts
 CMD ["Rscript", "deploy.R"]
+
 

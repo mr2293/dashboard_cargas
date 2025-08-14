@@ -63,36 +63,20 @@ jobs:
          # Fetch latest remote changes
          git fetch origin main
 
-         # Rebase local commits on top of remote main to avoid non-fast-forward errors
+         # Rebase local commits on top of remote main
          git rebase origin/main || git rebase --abort
 
-         # Push local commits on top of remote
+         # Push local commits
          git push origin main
 
       # ---------------------------
-      # 6. Set up R for Shiny deployment
-      # ---------------------------
-      - name: Set up R
-        uses: r-lib/actions/setup-r@v2
-
-      - name: Install R dependencies
-        run: |
-          install.packages(c(
-            "rsconnect", "shiny", "dplyr", "stringr",
-            "tibble", "lubridate", "bslib", "reactable",
-            "tidyverse", "zoo", "reshape2", "gt", "ggrepel",
-            "readxl", "plotly", "shinythemes"
-          ))
-        shell: Rscript {0}
-
-      # ---------------------------
-      # 7. Build Docker container
+      # 6. Build Docker container
       # ---------------------------
       - name: Build Docker image
         run: docker build -t dashboard_cargas .
 
       # ---------------------------
-      # 8. Deploy Shiny app
+      # 7. Deploy Shiny app inside Docker
       # ---------------------------
       - name: Deploy to shinyapps.io
         env:
@@ -100,8 +84,122 @@ jobs:
           TOKEN: ${{ secrets.TOKEN }}
           SECRET: ${{ secrets.SECRET }}
         run: |
-          docker run \
+          docker run --rm \
             -e SHINY_ACC_NAME=$SHINY_ACC_NAME \
             -e TOKEN=$TOKEN \
             -e SECRET=$SECRET \
             dashboard_cargas
+
+
+
+
+
+
+
+# name: Update Google Sheet & Deploy Shiny App
+# 
+# on:
+#   schedule:
+#     - cron: '15 15 * * *'  # 9:15 AM Mexico City time
+#   workflow_dispatch:
+# 
+# jobs:
+#   update-and-deploy:
+#     runs-on: ubuntu-latest
+#     steps:
+#       # ---------------------------
+#       # 1. Checkout repository
+#       # ---------------------------
+#       - name: Checkout repo
+#         uses: actions/checkout@v2
+# 
+#       # ---------------------------
+#       # 2. Set up Python for Google Sheet download
+#       # ---------------------------
+#       - name: Set up Python
+#         uses: actions/setup-python@v4
+#         with:
+#           python-version: '3.x'
+# 
+#       - name: Install Python dependencies
+#         run: |
+#           python -m pip install --upgrade pip
+#           pip install requests
+# 
+#       # ---------------------------
+#       # 3. Ensure data folder exists
+#       # ---------------------------
+#       - name: Ensure data folder exists
+#         run: mkdir -p data
+# 
+#       # ---------------------------
+#       # 4. Download Google Sheet as XLSX
+#       # ---------------------------
+#       - name: Download Google Sheet
+#         env:
+#           SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+#         run: python download_gsheet.py
+# 
+#       # ---------------------------
+#       # 5. Commit & push changes safely
+#       # ---------------------------
+#       - name: Commit and push changes
+#         env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#         run: |
+#          git config user.name "github-actions[bot]"
+#          git config user.email "github-actions[bot]@users.noreply.github.com"
+# 
+#          git add data/bienestar_jugador_primer_equipo_respuestas.xlsx
+# 
+#          # Only commit if there are changes
+#          git diff --quiet && git diff --staged --quiet || git commit -m "Update Google Sheet data"
+# 
+#          # Set authenticated remote URL
+#          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git
+# 
+#          # Fetch latest remote changes
+#          git fetch origin main
+# 
+#          # Rebase local commits on top of remote main to avoid non-fast-forward errors
+#          git rebase origin/main || git rebase --abort
+# 
+#          # Push local commits on top of remote
+#          git push origin main
+# 
+#       # ---------------------------
+#       # 6. Set up R for Shiny deployment
+#       # ---------------------------
+#       - name: Set up R
+#         uses: r-lib/actions/setup-r@v2
+# 
+#       - name: Install R dependencies
+#         run: |
+#           install.packages(c(
+#             "rsconnect", "shiny", "dplyr", "stringr",
+#             "tibble", "lubridate", "bslib", "reactable",
+#             "tidyverse", "zoo", "reshape2", "gt", "ggrepel",
+#             "readxl", "plotly", "shinythemes"
+#           ))
+#         shell: Rscript {0}
+# 
+#       # ---------------------------
+#       # 7. Build Docker container
+#       # ---------------------------
+#       - name: Build Docker image
+#         run: docker build -t dashboard_cargas .
+# 
+#       # ---------------------------
+#       # 8. Deploy Shiny app
+#       # ---------------------------
+#       - name: Deploy to shinyapps.io
+#         env:
+#           SHINY_ACC_NAME: ${{ secrets.SHINY_ACC_NAME }}
+#           TOKEN: ${{ secrets.TOKEN }}
+#           SECRET: ${{ secrets.SECRET }}
+#         run: |
+#           docker run \
+#             -e SHINY_ACC_NAME=$SHINY_ACC_NAME \
+#             -e TOKEN=$TOKEN \
+#             -e SECRET=$SECRET \
+#             dashboard_cargas

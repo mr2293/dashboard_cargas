@@ -1,16 +1,15 @@
-name: Update and Deploy Shiny App
+name: Update and Deploy Dashboard
 
-# Single schedule triggers both jobs sequentially
 on:
   schedule:
-    - cron: '15 15 * * *'  # 15:15 UTC = 10:15 AM Mexico City (adjust if needed)
-  workflow_dispatch:  # allow manual runs
+    - cron: '15 15 * * *'  # 15:15 UTC daily (~9:15 AM Mexico City)
+  workflow_dispatch:       # Allow manual runs
 
 jobs:
   update-sheet:
     runs-on: ubuntu-latest
     outputs:
-      updated: ${{ steps.commit.outputs.updated }}
+      data_updated: ${{ steps.check-changes.outputs.updated }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v2
@@ -20,7 +19,7 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Install Python dependencies
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install requests
@@ -33,17 +32,28 @@ jobs:
           SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
         run: python download_gsheet.py
 
-      - name: Commit and push changes
-        id: commit
+      - name: Configure git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/bienestar_jugador_primer_equipo_respuestas.xlsx
-          git diff --quiet && git diff --staged --quiet || git commit -m "Update Google Sheet data"
-          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
-          echo "::set-output name=updated::true"
 
-  deploy-shiny:
+      - name: Check for changes
+        id: check-changes
+        run: |
+          git add data/bienestar_jugador_primer_equipo_respuestas.xlsx
+          if git diff --cached --quiet; then
+            echo "updated=false" >> $GITHUB_OUTPUT
+          else
+            echo "updated=true" >> $GITHUB_OUTPUT
+            git commit -m "Update Google Sheet data"
+          fi
+
+      - name: Push changes
+        if: steps.check-changes.outputs.updated == 'true'
+        run: |
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
+
+  deploy-app:
     needs: update-sheet
     runs-on: ubuntu-latest
     steps:
@@ -52,16 +62,6 @@ jobs:
 
       - name: Set up R
         uses: r-lib/actions/setup-r@v2
-
-      - name: Install R dependencies
-        run: |
-          install.packages(c(
-            "rsconnect", "shiny", "dplyr", "stringr",
-            "tibble", "lubridate", "bslib", "reactable",
-            "tidyverse", "zoo", "reshape2", "gt", "ggrepel",
-            "readxl", "plotly", "shinythemes"
-          ))
-        shell: Rscript {0}
 
       - name: Build Docker image
         run: docker build -t dashboard_cargas .
@@ -72,7 +72,7 @@ jobs:
           TOKEN: ${{ secrets.TOKEN }}
           SECRET: ${{ secrets.SECRET }}
         run: docker run \
-          -e SHINY_ACC_NAME=${{ secrets.SHINY_ACC_NAME }} \
-          -e TOKEN=${{ secrets.TOKEN }} \
-          -e SECRET=${{ secrets.SECRET }} \
+          -e SHINY_ACC_NAME=$SHINY_ACC_NAME \
+          -e TOKEN=$TOKEN \
+          -e SECRET=$SECRET \
           dashboard_cargas

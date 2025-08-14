@@ -1,14 +1,16 @@
-name: Update Data & Deploy Shiny App
+name: Update and Deploy Shiny App
 
+# Single schedule triggers both jobs sequentially
 on:
   schedule:
-    - cron: '15 15 * * *'  # 9:15 AM Mexico City (15:10 UTC)
-  workflow_dispatch:  # Allow manual runs
+    - cron: '15 15 * * *'  # 15:15 UTC = 10:15 AM Mexico City (adjust if needed)
+  workflow_dispatch:  # allow manual runs
 
 jobs:
   update-sheet:
     runs-on: ubuntu-latest
-
+    outputs:
+      updated: ${{ steps.commit.outputs.updated }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v2
@@ -32,17 +34,18 @@ jobs:
         run: python download_gsheet.py
 
       - name: Commit and push changes
+        id: commit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/bienestar_jugador_primer_equipo_respuestas.xlsx
           git diff --quiet && git diff --staged --quiet || git commit -m "Update Google Sheet data"
-          git push
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
+          echo "::set-output name=updated::true"
 
   deploy-shiny:
     needs: update-sheet
-    runs-on: ubuntu-20.04
-
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
         uses: actions/checkout@v2
@@ -52,9 +55,12 @@ jobs:
 
       - name: Install R dependencies
         run: |
-          install.packages(c("rsconnect", "shiny", "dplyr", "stringr", "tibble",
-                             "lubridate", "bslib", "reactable", "tidyverse", "zoo",
-                             "reshape2", "gt", "ggrepel", "readxl", "plotly", "shinythemes"))
+          install.packages(c(
+            "rsconnect", "shiny", "dplyr", "stringr",
+            "tibble", "lubridate", "bslib", "reactable",
+            "tidyverse", "zoo", "reshape2", "gt", "ggrepel",
+            "readxl", "plotly", "shinythemes"
+          ))
         shell: Rscript {0}
 
       - name: Build Docker image
@@ -66,7 +72,7 @@ jobs:
           TOKEN: ${{ secrets.TOKEN }}
           SECRET: ${{ secrets.SECRET }}
         run: docker run \
-             -e SHINY_ACC_NAME=${{ secrets.SHINY_ACC_NAME }} \
-             -e TOKEN=${{ secrets.TOKEN }} \
-             -e SECRET=${{ secrets.SECRET }} \
-             dashboard_cargas
+          -e SHINY_ACC_NAME=${{ secrets.SHINY_ACC_NAME }} \
+          -e TOKEN=${{ secrets.TOKEN }} \
+          -e SECRET=${{ secrets.SECRET }} \
+          dashboard_cargas

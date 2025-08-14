@@ -1,12 +1,8 @@
 # Use the official Rocker image for Shiny
 FROM rocker/shiny:4.2.1
 
-# Install latest R dependencies for the Shiny app
-RUN R -e "install.packages(c(
-  'tidyverse', 'zoo', 'reshape2', 'gt', 'ggrepel',
-  'lubridate', 'readxl', 'dplyr', 'shiny', 'plotly',
-  'shinythemes', 'bslib', 'reactable', 'tibble', 'stringr',
-  'rsconnect'), repos='https://cloud.r-project.org')"
+# Install latest R dependencies for the Shiny app (single line)
+RUN R -e "install.packages(c('tidyverse','zoo','reshape2','gt','ggrepel','lubridate','readxl','dplyr','shiny','plotly','shinythemes','bslib','reactable','tibble','stringr','rsconnect'), repos='https://cloud.r-project.org')"
 
 # Set the working directory inside the container
 WORKDIR /home/dashboard_cargas

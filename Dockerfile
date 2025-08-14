@@ -23,5 +23,6 @@ COPY www/player_images /home/dashboard_cargas/www/player_images
 # Copy the rsconnect directory
 COPY rsconnect /home/dashboard_cargas/rsconnect
 
-# Set the command to deploy the app
-CMD Rscript deploy.R
+# Run deploy.R when container starts
+CMD ["Rscript", "deploy.R"]
+

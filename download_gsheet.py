@@ -11,10 +11,10 @@ if not sheet_id:
 url = f'https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=xlsx'
 
 # Path where the file will be saved in the repo (relative to repo root)
-output_dir = 'data'
+output_dir = 'home/dashboard_cargas/data'  
 output_path = os.path.join(output_dir, 'bienestar_jugador_primer_equipo_respuestas.xlsx')
 
-# Ensure the 'data' folder exists
+# Ensure the folder exists
 os.makedirs(output_dir, exist_ok=True)
 
 # Download the file
@@ -25,3 +25,4 @@ with open(output_path, 'wb') as f:
     f.write(response.content)
 
 print(f'Downloaded Google Sheet as {output_path}')
+

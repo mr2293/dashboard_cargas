@@ -3,13 +3,16 @@ library(rsconnect)
 
 # Authenticate using environment variables set by GitHub Actions
 setAccountInfo(
-  name = Sys.getenv("'mateo-rodriguez-23'"),
-  token = Sys.getenv("'0762967B3C31FB026B0220514A94A22E'"),
-  secret = Sys.getenv("'dAq9rh18omtRHu1jLxufOqJ41j0s8eZvrFxwMeVU'")
+  name = Sys.getenv("SHINY_ACC_NAME"),
+  token = Sys.getenv("TOKEN"),
+  secret = Sys.getenv("SECRET")
 )
 
-# Deploy the app
-deployApp(appDir = "/Users/mateorodriguez/Desktop/analisis_CA/dashboard_cargas",
-          appName = "dashboard_cargas",
-          account = Sys.getenv("'mateo-rodriguez-23'"),
-          forceUpdate = TRUE)
+# Deploy the app from the current working directory
+deployApp(
+  appDir = ".",  # Current working directory in Docker/GitHub Actions
+  appName = "dashboard_cargas",
+  account = Sys.getenv("SHINY_ACC_NAME"),
+  forceUpdate = TRUE
+)
+

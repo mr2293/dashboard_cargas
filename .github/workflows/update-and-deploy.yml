@@ -8,6 +8,7 @@ on:
 jobs:
   update-and-deploy:
     runs-on: ubuntu-latest
+
     steps:
       # ---------------------------
       # 1. Checkout repository
@@ -47,33 +48,33 @@ jobs:
       # ---------------------------
       - name: Commit and push changes
         env:
-         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-         git config user.name "github-actions[bot]"
-         git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
-         git add data/bienestar_jugador_primer_equipo_respuestas.xlsx
+          git add data/bienestar_jugador_primer_equipo_respuestas.xlsx
 
-         # Only commit if there are changes
-         git diff --quiet && git diff --staged --quiet || git commit -m "Update Google Sheet data"
+          # Only commit if there are changes
+          git diff --quiet && git diff --staged --quiet || git commit -m "Update Google Sheet data"
 
-         # Set authenticated remote URL
-         git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git
+          # Set authenticated remote URL
+          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git
 
-         # Fetch latest remote changes
-         git fetch origin main
+          # Fetch latest remote changes
+          git fetch origin main
 
-         # Rebase local commits on top of remote main
-         git rebase origin/main || git rebase --abort
+          # Rebase local commits on top of remote
+          git rebase origin/main || git rebase --abort
 
-         # Push local commits
-         git push origin main
+          # Push local commits
+          git push origin main
 
       # ---------------------------
       # 6. Build Docker container
       # ---------------------------
       - name: Build Docker image
-        run: docker build -t dashboard_cargas .
+        run: docker build --pull -t dashboard_cargas .
 
       # ---------------------------
       # 7. Deploy Shiny app inside Docker

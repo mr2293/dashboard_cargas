@@ -45,10 +45,10 @@ jobs:
       # ---------------------------
       # 5. Commit & push changes safely
       # ---------------------------
-     - name: Commit and push changes
-       env:
+      - name: Commit and push changes
+        env:
          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-       run: |
+        run: |
          git config user.name "github-actions[bot]"
          git config user.email "github-actions[bot]@users.noreply.github.com"
 

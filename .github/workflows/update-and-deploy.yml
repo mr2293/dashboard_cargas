@@ -45,10 +45,10 @@ jobs:
       # ---------------------------
       # 5. Commit & push changes safely
       # ---------------------------
-      - name: Commit and push changes
-        env:
+     - name: Commit and push changes
+       env:
          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
+       run: |
          git config user.name "github-actions[bot]"
          git config user.email "github-actions[bot]@users.noreply.github.com"
 
@@ -60,10 +60,13 @@ jobs:
          # Set authenticated remote URL
          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git
 
-         # Pull remote changes with rebase
-         git pull --rebase origin main
+         # Fetch latest remote changes
+         git fetch origin main
 
-         # Push local changes
+         # Rebase local commits on top of remote main to avoid non-fast-forward errors
+         git rebase origin/main || git rebase --abort
+
+         # Push local commits on top of remote
          git push origin main
 
 

@@ -191,6 +191,7 @@ micros_shiny_comb <- micros_shiny_comb |>
     player == "Sebastian Cáceres" ~ "Sebastián Cáceres",
     player == "Isaias Violante" ~ "Isaías Violante",
     player == "Jose Zuniga" ~ "José Raúl Zúñiga",
+    player == "Allan Maximin" ~ "Allan Saint-Maximin",
     TRUE ~ player
   ))
 

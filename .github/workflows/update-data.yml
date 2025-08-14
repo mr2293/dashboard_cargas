@@ -2,8 +2,8 @@ name: Update Google Sheet Data
 
 on:
   schedule:
-    - cron: '10 15 * * *'  # 9:10 AM Mexico City = 14:10 UTC (adjust if needed)
-  workflow_dispatch:  # Allow manual runs
+    - cron: '10 15 * * *'  # 9:10 AM Mexico City = 15:10 UTC
+  workflow_dispatch:
 
 jobs:
   update-sheet:
@@ -23,11 +23,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests
 
+      - name: Ensure data folder exists
+        run: mkdir -p home/dashboard_cargas/data
+
       - name: Download Google Sheet as XLSX
         env:
-          SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}  # Store your Sheet ID in GitHub Secrets
-        run: |
-          python download_gsheet.py
+          SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+        run: python download_gsheet.py
 
       - name: Commit and push changes
         run: |

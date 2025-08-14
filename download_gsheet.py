@@ -1,14 +1,21 @@
 import os
 import requests
 
-# Get the Google Sheet ID from env var
+# Get the Google Sheet ID from environment variable
 sheet_id = os.getenv('SHEET_ID')
+
+if not sheet_id:
+    raise ValueError("SHEET_ID environment variable not set")
 
 # URL to download Google Sheet as XLSX
 url = f'https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=xlsx'
 
-# Path where the file will be saved in the repo
-output_path = 'home/dashboard_cargas/data/bienestar_jugador_primer_equipo_respuestas.xlsx'
+# Path where the file will be saved in the repo (relative to repo root)
+output_dir = 'data'
+output_path = os.path.join(output_dir, 'bienestar_jugador_primer_equipo_respuestas.xlsx')
+
+# Ensure the 'data' folder exists
+os.makedirs(output_dir, exist_ok=True)
 
 # Download the file
 response = requests.get(url)

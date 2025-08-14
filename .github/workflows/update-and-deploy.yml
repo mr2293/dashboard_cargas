@@ -69,7 +69,6 @@ jobs:
          # Push local commits on top of remote
          git push origin main
 
-
       # ---------------------------
       # 6. Set up R for Shiny deployment
       # ---------------------------

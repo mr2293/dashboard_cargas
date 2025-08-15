@@ -1,21 +1,22 @@
 # deploy.R
 library(rsconnect)
 
-# Pull credentials from environment
 shiny_acc <- Sys.getenv("SHINY_ACC_NAME")
 shiny_token <- Sys.getenv("TOKEN")
 shiny_secret <- Sys.getenv("SECRET")
 
-# Make sure rsconnect is using them
+cat("Shiny account:", shiny_acc, "\n")
+cat("Token length:", nchar(shiny_token), "\n")
+cat("Secret length:", nchar(shiny_secret), "\n")
+
 rsconnect::setAccountInfo(
   name = shiny_acc,
   token = shiny_token,
   secret = shiny_secret
 )
 
-# Deploy the app
 rsconnect::deployApp(
-  appDir = ".", 
+  appDir = ".",
   appName = "dashboard_cargas",
   launch.browser = FALSE
 )

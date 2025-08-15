@@ -1,0 +1,10 @@
+# .dockerignore
+
+.Rhistory
+.RData
+.Rproj.user
+renv/library
+renv/python
+__pycache__
+*.log
+.DS_Store

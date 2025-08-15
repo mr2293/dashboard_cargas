@@ -42,7 +42,7 @@
 
 
 
-# Use official Rocker image for Shiny
+# Use official Rocker image for Shiny (force linux/amd64 for M1/M2 Macs)
 FROM --platform=linux/amd64 rocker/shiny:4.2.1
 
 # Install system dependencies needed for R packages
@@ -56,10 +56,9 @@ RUN apt-get update && apt-get install -y \
     libpng-dev \
     libjpeg-dev \
     libtiff5-dev \
+    libv8-dev \
+    libjq-dev \
     && rm -rf /var/lib/apt/lists/*
-
-# Install required R packages in a single line
-RUN R -e "install.packages(c('tidyverse','zoo','reshape2','gt','ggrepel','lubridate','readxl','dplyr','shiny','plotly','shinythemes','bslib','reactable','tibble','stringr','rsconnect','data.table','DT','curl','xml2'), repos='https://cloud.r-project.org')"
 
 # Set working directory
 WORKDIR /home/dashboard_cargas
@@ -72,6 +71,12 @@ COPY data /home/dashboard_cargas/data
 COPY micros /home/dashboard_cargas/micros
 COPY www/player_images /home/dashboard_cargas/www/player_images
 COPY rsconnect /home/dashboard_cargas/rsconnect
+
+# Copy renv lockfile and renv library (if you use renv)
+COPY renv.lock renv/ ./
+
+# Install renv and restore all packages
+RUN R -e "install.packages('renv', repos='https://cloud.r-project.org'); renv::restore()"
 
 # Default command to run the deploy script
 CMD ["Rscript", "deploy.R"]

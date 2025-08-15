@@ -1,18 +1,21 @@
 # deploy.R
 library(rsconnect)
 
-# Authenticate using environment variables set by GitHub Actions
-setAccountInfo(
-  name = Sys.getenv("SHINY_ACC_NAME"),
-  token = Sys.getenv("TOKEN"),
-  secret = Sys.getenv("SECRET")
+# Pull credentials from environment
+shiny_acc <- Sys.getenv("SHINY_ACC_NAME")
+shiny_token <- Sys.getenv("TOKEN")
+shiny_secret <- Sys.getenv("SECRET")
+
+# Make sure rsconnect is using them
+rsconnect::setAccountInfo(
+  name = shiny_acc,
+  token = shiny_token,
+  secret = shiny_secret
 )
 
-# Deploy the app from the current working directory
-deployApp(
-  appDir = ".",  # Current working directory in Docker/GitHub Actions
+# Deploy the app
+rsconnect::deployApp(
+  appDir = ".", 
   appName = "dashboard_cargas",
-  account = Sys.getenv("SHINY_ACC_NAME"),
-  forceUpdate = TRUE
+  launch.browser = FALSE
 )
-

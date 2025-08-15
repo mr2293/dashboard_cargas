@@ -86,13 +86,10 @@ jobs:
           SECRET: ${{ secrets.SECRET }}
         run: |
           docker run --rm \
-            -e SHINY_ACC_NAME=$SHINY_ACC_NAME \
-            -e TOKEN=$TOKEN \
-            -e SECRET=$SECRET \
+            -e SHINY_ACC_NAME="${SHINY_ACC_NAME}" \
+            -e TOKEN="${TOKEN}" \
+            -e SECRET="${SECRET}" \
             dashboard_cargas
-
-
-
 
 
 

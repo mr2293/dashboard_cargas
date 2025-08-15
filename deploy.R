@@ -18,5 +18,8 @@ rsconnect::setAccountInfo(
 rsconnect::deployApp(
   appDir = ".",
   appName = "dashboard_cargas",
+  account = Sys.getenv("SHINY_ACC_NAME"),
+  server = "shinyapps.io",
+  forceUpdate = TRUE,
   launch.browser = FALSE
 )

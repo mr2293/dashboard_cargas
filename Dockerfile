@@ -78,7 +78,7 @@
 
 
 # Use official Rocker image for Shiny (remove --platform)
-FROM rocker/shiny:4.2.1
+FROM rocker/shiny:4.4.1
 
 # Install system dependencies for R packages
 RUN apt-get update && apt-get install -y \

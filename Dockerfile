@@ -77,10 +77,10 @@
 #CMD ["Rscript", "deploy.R"]
 
 
-# Use official Rocker image for Shiny
-FROM --platform=linux/amd64 rocker/shiny:4.2.1
+# Use official Rocker image for Shiny (remove --platform)
+FROM rocker/shiny:4.2.1
 
-# Install system dependencies needed for R packages
+# Install system dependencies for R packages
 RUN apt-get update && apt-get install -y \
     libcurl4-openssl-dev \
     libssl-dev \
@@ -91,23 +91,26 @@ RUN apt-get update && apt-get install -y \
     libpng-dev \
     libjpeg-dev \
     libtiff5-dev \
+    libv8-dev \
+    g++ \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /home/dashboard_cargas
 
-# Copy app files
-COPY app.R dashboard.R deploy.R dashboard_cargas.Rproj renv.lock ./
+# Copy R project + renv.lock + R scripts
+COPY dashboard_cargas.Rproj renv.lock ./
+COPY app.R dashboard.R deploy.R ./
 
-# Copy folders
-COPY data /home/dashboard_cargas/data
-COPY micros /home/dashboard_cargas/micros
-COPY www/player_images /home/dashboard_cargas/www/player_images
-COPY rsconnect /home/dashboard_cargas/rsconnect
+# Copy data, www, micros folders
+COPY data data
+COPY www www
+COPY micros micros
+COPY rsconnect rsconnect
 
-# Install renv and restore project library
-RUN R -e "install.packages('renv', repos='https://cloud.r-project.org')" \
-    && R -e "renv::restore(prompt = FALSE)"
+# Install renv first and restore packages
+RUN R -e "install.packages('renv', repos='https://cloud.r-project.org')" && \
+    R -e "renv::restore(prompt = FALSE)"
 
-# Default command to run the deploy script
+# Default command to deploy
 CMD ["Rscript", "deploy.R"]

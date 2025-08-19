@@ -10,7 +10,7 @@ library(dplyr)
 # Leer Cuestionario de Bienestar de Jugadores ---------
 survey_path <- "data/bienestar_jugador_primer_equipo_respuestas.xlsx"
 
-recuperacion_df <- read_excel(survey_path)
+recuperacion_df <- read_xlsx(survey_path)
 
 # Darle Puntuación a Recuperación de Jugadores -------------
 

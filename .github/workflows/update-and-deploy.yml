@@ -3,7 +3,7 @@ name: Update Google Sheet & Deploy Shiny App
 on:
   schedule:
     # GitHub Actions uses UTC. 09:15 America/Mexico_City (UTC-6) = 15:15 UTC.
-    - cron: '15 15 * * *'
+    - cron: '45 15 * * *'
   workflow_dispatch:
 
 permissions:
@@ -15,7 +15,7 @@ jobs:
 
     steps:
       # ---------------------------
-      # 1) Checkout repository (full history, can push)
+      # 1) Checkout repository (full history)
       # ---------------------------
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -61,11 +61,15 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          # Ensure we're up to date before committing
-          git pull --rebase origin main || true
+          # Ensure we're on main branch
+          git checkout main
+          git pull origin main
 
           # Stage the updated sheet
           git add data/bienestar_jugador_primer_equipo_respuestas.xlsx
+
+          # Debug info: show git status
+          git status
 
           # Commit only if there are staged changes
           if git diff --cached --quiet; then

@@ -7,10 +7,18 @@
 #    https://shiny.posit.co/
 #
 
+# app.R
 library(shiny)
 library(plotly)
 library(shinythemes)
-source("dashboard.R")  # Ensure this file returns all needed plot functions and data
+library(ggplot2)
+library(dplyr)
+
+# Load your data + helper plotting fns (recuperacion_df, micros_individual, plot_* fns)
+tryCatch(
+  source("dashboard.R", local = TRUE, encoding = "UTF-8"),
+  error = function(e) stop("Failed to source dashboard.R: ", conditionMessage(e))
+)
 
 player_info <- tibble::tibble(
   player = c("Néstor Araujo", "Brian Rodríguez", "Sebastián Cáceres", "Alan Cervantes", 
@@ -96,58 +104,73 @@ ui <- fluidPage(
                       tags$summary("Interpretación Estatus de Carga", style = "font-weight:bold; font-size:16px;"),
                       "El valor del índice de carga, idealmente, debe de estar en un rango de 0.8 a 1.3.",
                       tags$br(),
-                      "Si está dentro de este rango, se considera 'Punto Ideal'.",
-                      tags$br(),
                       "Debajo de 0.8: 'Carga Baja'. Sobre 1.3: 'Sobrecargado'."
                     ),
                     tags$details(
                       tags$summary("Interpretación Score de Recuperación", style = "font-weight:bold; font-size:16px;"),
-                      "Compuesto por fatiga, sueño, calidad de sueño y dolor muscular. Cada categoría tiene un puntaje entre 0.5 y 2.5, dependiendo de la respuesta del jugador en la encuesta de bienestar.",
-                      tags$br(),
-                      "A la mejor respuesta posible se le asigna un valor de 2.5, y la peor respuesta posible de 0.5 o 1. Si elige alguna opción entre la mejor y la peor opción, se le asigna un valor intermedio a su respuesta.",
-                      tags$br(),
-                      "Este proceso se lleva a cabo para cada una de las cuatro categorías. La suma total genera el score de recuperación sobre 10."
+                      "Compuesto por fatiga, sueño, calidad de sueño y dolor muscular..."
                     ),
                     tags$details(
                       tags$summary("Interpretación Estatus de Recuperación", style = "font-weight:bold; font-size:16px;"),
-                      "El estatus de recuperación se calcula directamente del score de recuperación.",
-                      tags$br(),
                       "Si un jugador presenta un score de recuperación de 6 o mayor, su estatus será 'Recuperado'.",
                       tags$br(),
                       "Si es menor a 6, su estatus será 'Fatigado'."
-                    ),
-                    tags$details(
-                      tags$summary("Scores de Indicadores de Recuperación Diaria", style = "font-weight:bold; font-size:16px;"),
-                      "Son basados en las respuestas diarias de los jugadores en la encuesta de bienestar."
                     )
-           )
-    )
+           ))
   )
 )
 
 server <- function(input, output, session) {
   selected <- reactiveVal(NULL)
   
-  # 1. Set selection via dropdown
-  observeEvent(input$player_select, {
-    selected(input$player_select)
-  })
-  
-  # 2. Update selection via plot click and update dropdown
-  observeEvent(event_data("plotly_click", source = "acwr_scatter"), {
-    click_data <- event_data("plotly_click", source = "acwr_scatter")
-    if (!is.null(click_data)) {
-      selected(click_data$customdata)
-      updateSelectInput(session, "player_select", selected = click_data$customdata)
-    }
-  })
-  
-  output$acwr_scatter <- renderPlotly({
-    req(selected())
+  # ---------- Build scatter data reactively ----------
+  scatter_df <- reactive({
+    roster <- player_info$player
     
-    scatter_df <- scatter_df |>
+    # Latest ACWR per player
+    ac_last <- micros_individual %>%
+      mutate(date = as.Date(date)) %>%
+      filter(player %in% roster) %>%
+      group_by(player) %>%
+      slice_max(order_by = date, n = 1, with_ties = FALSE) %>%
+      ungroup() %>%
+      select(player, ac_ratio)
+    
+    # Latest recovery + date + pain; handle either "Zona Adolorida" or long question name
+    rec_cols <- names(recuperacion_df)
+    pain_col <- if ("Zona Adolorida" %in% rec_cols) "Zona Adolorida"
+    else "Donde te encuentras adolorido? Indica cada zona de dolor"
+    
+    rec_last <- recuperacion_df %>%
+      mutate(date = as.Date(`Marca temporal`)) %>%
+      filter(Nombre %in% roster) %>%
+      group_by(Nombre) %>%
+      slice_max(order_by = date, n = 1, with_ties = FALSE) %>%
+      ungroup() %>%
+      transmute(
+        player         = Nombre,
+        recovery_score,
+        latest_date    = date,
+        zona_adolorida = .data[[pain_col]]
+      )
+    
+    # Combine + flags + hover text
+    ac_last %>%
+      inner_join(rec_last, by = "player") %>%
       mutate(
-        selected_flag = player == selected(),
+        recovery_status = if_else(recovery_score >= 6, "Recuperado", "Fatigado"),
+        load_status = case_when(
+          ac_ratio < 0.8 ~ "Carga Baja",
+          ac_ratio > 1.3 ~ "Carga Alta",
+          TRUE ~ "Carga Óptima"
+        ),
+        color_status = case_when(
+          ac_ratio >= 0.8 & ac_ratio <= 1.3 & recovery_score >= 6 ~ "green",
+          (ac_ratio >= 0.8 & ac_ratio <= 1.3 & recovery_score < 6) |
+            (recovery_score >= 6 & (ac_ratio < 0.8 | ac_ratio > 1.3)) ~ "yellow",
+          TRUE ~ "red"
+        ),
+        pain_flag = !is.na(zona_adolorida) & zona_adolorida != "Nada",
         hover_text = paste0(
           "Jugador: ", player,
           "<br>Fecha: ", latest_date,
@@ -155,32 +178,62 @@ server <- function(input, output, session) {
           "<br>Índice de Carga: ", round(ac_ratio, 2),
           "<br>Estatus de Recuperación: ", recovery_status,
           "<br>Estatus de Carga: ", load_status
+          # ifelse(pain_flag, paste0("<br>Zona Adolorida: ", zona_adolorida), "")
         )
       )
+  })
+  
+  # ---------- Initialize + keep selectInput in sync (without resetting selection) ----------
+  observe({
+    df <- scatter_df()
+    if (nrow(df) == 0) return()
     
-    p <- ggplot(scatter_df, aes(x = recovery_score, y = ac_ratio)) +
+    choices <- sort(unique(df$player))
+    curr <- isolate(selected())
+    sel  <- if (!is.null(curr) && curr %in% choices) curr else choices[1]
+    
+    updateSelectInput(session, "player_select", choices = choices, selected = sel)
+    if (is.null(curr)) selected(sel)  # only set default once
+  })
+  
+  # 1) selection via dropdown
+  observeEvent(input$player_select, {
+    selected(input$player_select)
+  }, ignoreInit = TRUE)
+  
+  # 2) selection via plot click and sync dropdown (ignore initial empty event)
+  observeEvent(event_data("plotly_click", source = "acwr_scatter"), {
+    cd <- event_data("plotly_click", source = "acwr_scatter")
+    if (!is.null(cd) && !is.null(cd$customdata)) {
+      selected(cd$customdata)
+      updateSelectInput(session, "player_select", selected = cd$customdata)
+    }
+  }, ignoreInit = TRUE)
+  
+  # ---------- ACWR scatter ----------
+  output$acwr_scatter <- renderPlotly({
+    df <- scatter_df()
+    req(nrow(df) > 0)
+    
+    df <- df %>% mutate(selected_flag = player == selected())
+    
+    p <- ggplot(df, aes(x = recovery_score, y = ac_ratio)) +
       geom_hline(yintercept = c(0.8, 1.3), linetype = "dashed", color = "gray50") +
-      
-      # Base layer (transparent dots)
-      geom_point(
-        aes(fill = color_status, text = hover_text, customdata = player),
-        size = 6, alpha = 0.3, color = "black"
-      ) +
-      
-      # Highlighted point with same text/customdata
-      geom_point(
-        data = scatter_df |> filter(selected_flag),
-        aes(fill = color_status, text = hover_text, customdata = player),
-        size = 8, shape = 21, stroke = 2, color = "black"
-      ) +
-      
-      scale_fill_manual(
-        values = c("green" = "#2ca02c", "yellow" = "#ffbf00", "red" = "#d62728")
-      ) +
+      geom_point(aes(fill = color_status, text = hover_text, customdata = player),
+                 shape = 21, size = 6, alpha = 0.35, color = "black") +
+      geom_point(data = dplyr::filter(df, pain_flag),
+                 aes(x = recovery_score, y = ac_ratio),
+                 inherit.aes = FALSE, shape = 21, size = 10, stroke = 1.2,
+                 fill = NA, color = "#d62728") +
+      geom_point(data = dplyr::filter(df, selected_flag),
+                 aes(fill = color_status, text = hover_text, customdata = player),
+                 shape = 21, size = 8, stroke = 1.2, color = "black") +
+      scale_fill_manual(values = c(green = "#2ca02c", yellow = "#ffbf00", red = "#d62728")) +
       labs(
         x = "Score de Recuperación",
         y = "Índice de Carga (ACWR)",
         title = "ACWR & Recuperación: Resumen del equipo de hoy"
+        # caption won't show in plotly
       ) +
       theme_minimal(base_size = 14) +
       theme(
@@ -191,10 +244,22 @@ server <- function(input, output, session) {
         panel.grid.major.y = element_blank()
       )
     
-    ggplotly(p, tooltip = "text", source = "acwr_scatter")
+    ggplotly(p, tooltip = "text", source = "acwr_scatter") %>%
+      layout(
+        margin = list(b = 70),  # make room for caption
+        annotations = list(
+          list(
+            x = 0.90, y = -0.12, xref = "paper", yref = "paper",
+            text = "<b>Círculo rojo = Dolor muscular</b>",
+            showarrow = FALSE, xanchor = "center", yanchor = "top",
+            font = list(size = 12)
+          )
+        )
+      )
   })
   
   
+  # ---------- Linked panels (from dashboard.R) ----------
   output$survey_plot <- renderPlotly({
     req(selected())
     ggplotly(plot_player_recuperacion(selected()), tooltip = "text")
@@ -212,9 +277,8 @@ server <- function(input, output, session) {
   
   output$player_info_box <- renderUI({
     req(selected())
-    player_row <- player_info |> filter(player == selected())
+    player_row <- player_info %>% filter(player == selected())
     if (nrow(player_row) == 0) return(NULL)
-    
     tags$div(style = "text-align:center;",
              tags$img(
                src = file.path("player_images", player_row$image),

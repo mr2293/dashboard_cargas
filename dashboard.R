@@ -63,14 +63,75 @@ compute_recovery_score <- function(fatigue, sleep_quality, sleep_hours, soreness
   return(round(score, 1))  # Max = 10
 }
 
+compute_rest_score <- function(fatigue, sleep_quality, sleep_hours) {
+  score <- 0
+  
+  # Fatigue scoring
+  score <- score + case_when(
+    fatigue == "Muy fresco" ~ 5,
+    fatigue == "Fresco" ~ 4.5,
+    fatigue == "Mejor que lo normal" ~ 3.5,
+    fatigue == "Normal" ~ 2.5,
+    fatigue == "Peor que lo normal" ~ 2,
+    fatigue == "Cansado" ~ 1.5,
+    fatigue == "Muy cansado" ~ 1,
+    TRUE ~ 0
+  )
+  
+  # Sleep quality
+  score <- score + case_when(
+    sleep_quality == "Muy buena noche" ~ 2.5,
+    sleep_quality == "Buena noche" ~ 2.2,
+    sleep_quality == "Mejor que normal" ~ 1.8,
+    sleep_quality == "Normal" ~ 1.5,
+    sleep_quality == "Peor que normal" ~ 1.2,
+    sleep_quality == "Mala noche" ~ 0.8,
+    sleep_quality == "Muy mala noche" ~ 0.5,
+    sleep_quality == "Me desperté mucho" ~ 0.5,
+    TRUE ~ 0
+  )
+  
+  # Sleep duration
+  score <- score + case_when(
+    sleep_hours == "Más de 8" ~ 2.5,
+    sleep_hours == "6 a 8" ~ 2,
+    sleep_hours == "Menos de 6" ~ 1,
+    TRUE ~ 0
+  )
+  
+  return(round(score, 1))  # Max = 10
+}
+
+compute_pain_score <- function(soreness) {
+  score <- 0
+  
+  # Pain
+  score <- score + case_when(
+    soreness == "Normal" ~ 8,
+    soreness == "No me duele nada" ~ 6,
+    soreness == "Adolorido de una zona" ~ 5,
+    soreness == "Muy adolorido en general" ~ 4,
+    
+    TRUE ~ 0
+  )
+  
+  return(round(score, 1))  # Max = 10
+}
+
 recuperacion_df <- recuperacion_df|>
   mutate(recovery_score = compute_recovery_score(
     `Nivel de Cansancio hoy (Fatiga)`,
     `Qué tal descansaste ayer?`,
     `Cuántas horas dormiste ayer?`,
     `Estás adolorido de alguna parte?`,
-    `Donde te encuentras adolorido? Indica cada parte`
-  ))
+    `Donde te encuentras adolorido? Indica cada zona de dolor`
+  )) |>
+  mutate(rest_score = compute_rest_score(
+    `Nivel de Cansancio hoy (Fatiga)`,
+    `Qué tal descansaste ayer?`,
+    `Cuántas horas dormiste ayer?`)) |>
+  mutate(pain_score = compute_pain_score(
+    `Estás adolorido de alguna parte?`))
 
 # Gráficas Sueño, Fatiga, Dolor Muscular -----------
 
@@ -108,7 +169,9 @@ plot_player_recuperacion <- function(player_name) {
            `Nivel de Cansancio hoy (Fatiga)`, 
            `Qué tal descansaste ayer?`,
            `Estás adolorido de alguna parte?`,
+           `Donde te encuentras adolorido? Indica cada zona de dolor`,
            fatiga_score, sueño_score, dolor_score) |> 
+    rename(`Zona Adolorida` = `Donde te encuentras adolorido? Indica cada zona de dolor`) |>
     pivot_longer(
       cols = c(fatiga_score, sueño_score, dolor_score),
       names_to = "score_type", values_to = "score"
@@ -141,10 +204,17 @@ plot_player_recuperacion <- function(player_name) {
         "Jugador: ", Nombre,
         "<br>Fecha: ", `Marca temporal`,
         "<br>Respuesta: ", respuesta,
+        ifelse(type == "Dolor Muscular" & !is.na(`Zona Adolorida`),
+               paste0("<br>Zona Adolorida: ", `Zona Adolorida`), ""),
         "<br>Score: ", score
       )
     ),
     shape = 21, size = 5, color = "white") +
+    # geom_text(
+    #   data = player_long |> filter(type == "Dolor Muscular"),
+    #   aes(label = `Zona Adolorida`),
+    #   vjust = -1.2, size = 3.5, color = "black"
+    # ) +
     facet_wrap(~type, ncol = 1, scales = "free_y") +
     scale_y_continuous(expand = expansion(mult = c(0.1, 0.1))) +
     scale_fill_manual(values = c("Alta" = "#1a9850", "Baja" = "#d7191c")) +
@@ -266,19 +336,26 @@ micros_individual <- micros_individual |>
 
 plot_individual_ac <- function(player) {
   
-  # limite_inferior <- 0.8
-  # limite_superior <- 1.5
-  scaling_factor <- 85
-  
-  ac_breaks <- seq(0.5, 2.5, by = 0.5)
-  
   micros_individual <- micros_individual |>
     mutate(date = as.Date(date))
   
-  # Get last 21 calendar days for selected player
   max_day <- max(micros_individual$date, na.rm = TRUE)
   filtered_data <- micros_individual |>
     filter(player == !!player & date >= max_day - 20)
+  
+  # --- Dynamic scaling for A:C ---
+  # 1) left y-limit from loads (with headroom)
+  max_load <- max(c(filtered_data$carga_aguda, filtered_data$carga_cronica), na.rm = TRUE)
+  left_ylim <- if (is.finite(max_load)) max_load * 1.2 else 1
+  
+  # 2) right-axis range for A:C (rounded to .5, clamp sensibly)
+  ac_min <- max(0.5, floor(min(filtered_data$ac_ratio, na.rm = TRUE) * 2) / 2)
+  ac_max <- max(2.0, ceiling(max(filtered_data$ac_ratio, na.rm = TRUE) * 2) / 2)
+  ac_max <- min(ac_max, 3.0)                      # (optional) don’t let it explode
+  ac_breaks <- seq(ac_min, ac_max, by = 0.5)
+  
+  # 3) scaling so that ac_max sits at the top of the left axis
+  scaling_factor <- left_ylim / ac_max
   
   ggplot(filtered_data, aes(x = date)) +
     # Acute Load
@@ -297,36 +374,32 @@ plot_individual_ac <- function(player) {
                                  "<br>Carga Crónica: ", round(carga_cronica, 1))),
                size = 3.5) +
     
-    # A:C Ratio (rescaled)
-    geom_line(aes(y = ac_ratio * scaling_factor, color = "Relación A:C"), linewidth = 2, linetype = "dashed") + 
+    # A:C Ratio (rescaled dynamically)
+    geom_line(aes(y = ac_ratio * scaling_factor, color = "Relación A:C"),
+              linewidth = 2, linetype = "dashed") +
     geom_point(aes(y = ac_ratio * scaling_factor, color = "Relación A:C",
                    text = paste0("Jugador: ", player,
                                  "<br>Fecha: ", date,
                                  "<br>Relación A:C: ", round(ac_ratio, 2))),
                size = 3.5) +
     
-    # Y-axis with secondary A:C axis
-    scale_y_continuous(
-      limits = c(0, max(c(filtered_data$carga_aguda,
-                          filtered_data$carga_cronica,
-                          filtered_data$ac_ratio * scaling_factor), na.rm = TRUE) * 1.2),
-      name = NULL,
-      sec.axis = sec_axis(~./scaling_factor, name = "A:C Ratio", breaks = seq(0, 3, 0.5))
-    ) +
+    # Optional: show A:C guide lines at 0.8 and 1.3 on the left scale
+    geom_hline(yintercept = c(0.8, 1.3) * scaling_factor,
+               linetype = "dashed", color = "goldenrod", alpha = 0.35) +
     
-    # More ticks on X axis
+    # Axes
+    scale_y_continuous(
+      limits = c(0, left_ylim),
+      name   = "Nivel de Carga",
+      sec.axis = sec_axis(~ . / scaling_factor,
+                          name = "Relación A:C", breaks = ac_breaks)
+    ) +
     scale_x_date(date_breaks = "1 day", date_labels = "%d-%b") +
     
-    # Labels and theme
-    labs(
-      title = paste("Relación A:C 7:21 –", player),
-      x = NULL,
-      y = "Nivel de Carga",
-      color = NULL
-    ) +
+    # (If you still want the big labels on the right edge)
     geom_text(
       data = tibble(
-        x = max(filtered_data$date) + 0.2,
+        x = max(filtered_data$date, na.rm = TRUE) + 0.2,
         y = ac_breaks * scaling_factor,
         label = as.character(ac_breaks)
       ),
@@ -334,39 +407,29 @@ plot_individual_ac <- function(player) {
       inherit.aes = FALSE,
       hjust = 0, size = 5.8, fontface = "bold", color = "black"
     ) +
-    # annotate("text",
-    #          x = max(filtered_data$date) + 0.35,
-    #          y = max(ac_breaks) * scaling_factor * 1.15,
-    #          label = "Relación A:C",
-    #          angle = 90,
-    #          fontface = "bold",
-    #          size = 5,
-    #          color = "black",
-    #          hjust = 0.5) +
-    # coord_cartesian(clip = "off") +
+    
     scale_color_manual(values = c(
-      "Carga Aguda" = "#0072B2",
+      "Carga Aguda"   = "#0072B2",
       "Carga Crónica" = "#4D4D4D",
-      "Relación A:C" = "goldenrod"
+      "Relación A:C"  = "goldenrod"
     )) +
     theme_minimal() +
     theme(
-      axis.text.x = element_text(angle = 45, hjust = 1, size = 14),
-      axis.text.y = element_text(size = 16), 
-      axis.title.y = element_text(size = 16, margin = margin(r = 10)),
-      plot.title = element_text(hjust = 0.5, size = 22, face = "bold",
-                                margin = margin(t = 35, b = 10)), 
-      plot.subtitle = element_text(size = 15, face = "bold", hjust = 0.5),
-      plot.margin = margin(t = 25, r = 20, b = 20, l = 20), 
+      axis.text.x   = element_text(angle = 45, hjust = 1, size = 14),
+      axis.text.y   = element_text(size = 16),
+      axis.title.y  = element_text(size = 16, margin = margin(r = 10)),
+      plot.title    = element_text(hjust = 0.5, size = 22, face = "bold",
+                                   margin = margin(t = 35, b = 10)),
+      plot.margin   = margin(t = 25, r = 20, b = 20, l = 20),
       panel.grid.major.x = element_blank(),
       panel.grid.minor.x = element_blank(),
       panel.grid.major.y = element_blank(),
       panel.grid.minor.y = element_blank(),
       legend.position = "bottom",
-      legend.title = element_text(size = 14),
-      legend.text = element_text(size = 13)
-    )
-  
+      legend.title    = element_text(size = 14),
+      legend.text     = element_text(size = 13)
+    ) +
+    labs(title = paste("Relación A:C 7:21 –", player), x = NULL, y = "Nivel de Carga", color = NULL)
 }
 
 plot_individual_ac("Álvaro Fidalgo")
@@ -454,9 +517,26 @@ plot_individual_hsr("Álvaro Fidalgo")
 
 # Scatter de ACWR & Recuperación -------
 
+jugs = c("Néstor Araujo", "Brian Rodríguez", "Sebastián Cáceres", "Alan Cervantes", 
+           "Rodolfo Cota", "Erick Sánchez", "Álvaro Fidalgo", "Henry Martín", "Israel Reyes",
+           "Jonathan Dos Santos", "Kevin Álvarez", "Luis Ángel Malagón", "Miguel Vázquez", 
+           "Ramón Juárez", "Alejandro Zendejas", "Rodrigo Aguirre", "Cristian Borja", 
+           "Dagoberto Espinoza", "Víctor Dávila", "Igor Lichnovsky", "Santiago Naveda", "Ralph Orquin",
+           "Alexis Gutiérrez", "Isaías Violante", "José Raúl Zúñiga", "Allan Saint-Maximin")
+
 # Asegurarse que las fechas están en formato Date
 recuperacion_df <- recuperacion_df |>
   mutate(date = as.Date(`Marca temporal`))
+
+latest_pain <- recuperacion_df %>%
+  filter(Nombre %in% jugs) %>%
+  group_by(Nombre) %>%
+  slice_max(order_by = date, n = 1, with_ties = FALSE) %>%
+  transmute(
+    player = Nombre,
+    zona_adolorida = `Donde te encuentras adolorido? Indica cada zona de dolor`,
+    pain_flag = !is.na(zona_adolorida) & zona_adolorida != "Nada"
+  )
 
 micros_individual <- micros_individual |>
   mutate(date = as.Date(date))
@@ -481,12 +561,10 @@ latest_dates <- recuperacion_df |>
 # Combinar datasets
 scatter_df <- latest_acwr |>
   inner_join(latest_recovery, by = "player") |>
-  inner_join(latest_dates, by = "player") |>
+  inner_join(latest_dates,   by = "player") |>
+  inner_join(latest_pain,     by = "player") |>
   mutate(
-    recovery_status = case_when(
-      recovery_score >= 6 ~ "Recuperado",
-      TRUE ~ "Fatigado"
-    ),
+    recovery_status = if_else(recovery_score >= 6, "Recuperado", "Fatigado"),
     load_status = case_when(
       ac_ratio < 0.8 ~ "Carga Baja",
       ac_ratio > 1.3 ~ "Carga Alta",
@@ -497,48 +575,38 @@ scatter_df <- latest_acwr |>
       (ac_ratio >= 0.8 & ac_ratio <= 1.3 & recovery_score < 6) |
         (recovery_score >= 6 & (ac_ratio < 0.8 | ac_ratio > 1.3)) ~ "yellow",
       TRUE ~ "red"
-    )
+    ),
+    pain_flag = !is.na(zona_adolorida) & zona_adolorida != "Nada"
   )
 
-acwr_scatter_plot <- ggplot(scatter_df, aes(
-  x = recovery_score,
-  y = ac_ratio,
-  fill = color_status,   # use color aesthetic for traffic light logic
-  text = paste0(
-    "Jugador: ", player,
-    "<br>Fecha: ", latest_date,
-    "<br>Score de Recuperación: ", recovery_score,
-    "<br>Índice de Carga: ", round(ac_ratio, 2),
-    "<br>Estatus de Recuperación: ", recovery_status,
-    "<br>Estatus de Carga: ", load_status
-  ),
-  customdata = player
-)) +
-  geom_hline(yintercept = c(0.8, 1.3), linetype = "dashed", color = "gray50") +
-  geom_point(
-    size = 6, alpha = 0.9, color = "black"
-  ) +
-  # geom_text(
-  #   aes(label = player),
-  #   nudge_x = 0.18,
-  #   nudge_y = 0,
-  #   size = 2.5,
-  #   show.legend = FALSE
-  # ) +
-  scale_fill_manual(
-    name = "Estado",
-    values = c(
-      "green" = "#2ca02c",   # Verde
-      "yellow" = "#ffbf00",  # Amarillo
-      "red" = "#d62728"      # Rojo
+acwr_scatter_plot <- ggplot(
+  scatter_df,
+  aes(
+    x = recovery_score,
+    y = ac_ratio,
+    fill = color_status,
+    text = paste0(
+      "Jugador: ", player,
+      "<br>Fecha: ", latest_date,
+      "<br>Score de Recuperación: ", recovery_score,
+      "<br>Índice de Carga: ", round(ac_ratio, 2),
+      "<br>Estatus de Recuperación: ", recovery_status,
+      "<br>Estatus de Carga: ", load_status,
+      ifelse(pain_flag, paste0("<br>Zona Adolorida: ", zona_adolorida), "")
     )
-    # ,
-    # labels = c(
-    #   "green" = "OK",
-    #   "yellow" = "Advertencia",
-    #   "red" = "Crítico"
-    # )
+  )
+) +
+  geom_hline(yintercept = c(0.8, 1.3), linetype = "dashed", color = "gray50") +
+  # puntos base (usar shape 21 para que 'fill' funcione)
+  geom_point(shape = 21, size = 6, alpha = 0.95, color = "black") +
+  # anillo morado para jugadores con dolor
+  geom_point(
+    data = dplyr::filter(scatter_df, pain_flag),
+    aes(x = recovery_score, y = ac_ratio),
+    inherit.aes = FALSE,
+    shape = 21, size = 9, stroke = 1.8, fill = NA, color = "#d62728"
   ) +
+  scale_fill_manual(values = c(green = "#2ca02c", yellow = "#ffbf00", red = "#d62728")) +
   labs(
     x = "Score de Recuperación",
     y = "Índice de Carga (ACWR)",
@@ -547,8 +615,6 @@ acwr_scatter_plot <- ggplot(scatter_df, aes(
   theme_minimal(base_size = 14) +
   theme(
     legend.position = "none",
-    legend.title = element_text(size = 13, face = "bold"),
-    legend.text = element_text(size = 12),
     plot.title = element_text(hjust = 0.5, face = "bold", size = 20),
     panel.grid.minor = element_blank(),
     panel.grid.major.x = element_blank(),

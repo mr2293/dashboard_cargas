@@ -24,4 +24,3 @@ packrat/
 *.rds
 *.qs
 
-data/*.xlsx

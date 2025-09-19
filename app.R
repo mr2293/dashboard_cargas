@@ -47,18 +47,27 @@ ui <- fluidPage(
   titlePanel("Dashboard de Recuperación Física – Club América"),
   
   fluidRow(
-    column(10,
-           h3(NULL, align = "center"),
-           plotlyOutput("acwr_scatter", height = "500px")
+    column(
+      10,
+      tabsetPanel(
+        id = "team_top_tabs",
+        tabPanel("Recuperación",
+                 plotlyOutput("acwr_scatter", height = "500px")),
+        tabPanel("Descanso",
+                 plotlyOutput("acwr_rest_scatter", height = "500px")),
+        tabPanel("Dolor Muscular",
+                 plotlyOutput("acwr_pain_scatter", height = "500px"))
+      )
     ),
-    column(2,
-           selectInput(
-             inputId = "player_select",
-             label = "Buscar jugador",
-             choices = sort(player_info$player),
-             selected = NULL
-           ),
-           uiOutput("player_info_box")
+    column(
+      2,
+      selectInput(
+        inputId = "player_select",
+        label   = "Buscar jugador",
+        choices = sort(player_info$player),
+        selected = NULL
+      ),
+      uiOutput("player_info_box")
     )
   ),
   
@@ -123,7 +132,15 @@ ui <- fluidPage(
 server <- function(input, output, session) {
   selected <- reactiveVal(NULL)
   
-  # ---------- Build scatter data reactively ----------
+  # ---------- helpers ----------
+  to_plotly <- function(p, src = NULL) {
+    if (inherits(p, "ggplot")) p <- ggplotly(p, tooltip = "text")
+    if (!inherits(p, "plotly")) stop("Plot must be a ggplot or plotly object.")
+    if (!is.null(src)) p$x$source <- src
+    p
+  }
+  
+  # ---------- Build ACWR x Recovery data reactively ----------
   scatter_df <- reactive({
     roster <- player_info$player
     
@@ -154,7 +171,7 @@ server <- function(input, output, session) {
         zona_adolorida = .data[[pain_col]]
       )
     
-    # Combine + flags + hover text
+    # Combine + flags + color/status
     ac_last %>%
       inner_join(rec_last, by = "player") %>%
       mutate(
@@ -178,7 +195,6 @@ server <- function(input, output, session) {
           "<br>Índice de Carga: ", round(ac_ratio, 2),
           "<br>Estatus de Recuperación: ", recovery_status,
           "<br>Estatus de Carga: ", load_status
-          # ifelse(pain_flag, paste0("<br>Zona Adolorida: ", zona_adolorida), "")
         )
       )
   })
@@ -196,12 +212,12 @@ server <- function(input, output, session) {
     if (is.null(curr)) selected(sel)  # only set default once
   })
   
-  # 1) selection via dropdown
+  # Keep selected player in sync with dropdown
   observeEvent(input$player_select, {
     selected(input$player_select)
   }, ignoreInit = TRUE)
   
-  # 2) selection via plot click and sync dropdown (ignore initial empty event)
+  # --- Click sync: ACWR x Recovery
   observeEvent(event_data("plotly_click", source = "acwr_scatter"), {
     cd <- event_data("plotly_click", source = "acwr_scatter")
     if (!is.null(cd) && !is.null(cd$customdata)) {
@@ -210,7 +226,29 @@ server <- function(input, output, session) {
     }
   }, ignoreInit = TRUE)
   
-  # ---------- ACWR scatter ----------
+  # --- Click sync: ACWR x Rest
+  observeEvent(event_data("plotly_click", source = "acwr_rest_scatter"), {
+    cd <- event_data("plotly_click", source = "acwr_rest_scatter")
+    if (!is.null(cd) && !is.null(cd$customdata)) {
+      selected(cd$customdata)
+      updateSelectInput(session, "player_select", selected = cd$customdata)
+    }
+  }, ignoreInit = TRUE)
+  
+  # --- Click sync: ACWR x Pain
+  observeEvent(event_data("plotly_click", source = "acwr_pain_scatter"), {
+    cd <- event_data("plotly_click", source = "acwr_pain_scatter")
+    if (!is.null(cd) && !is.null(cd$customdata)) {
+      selected(cd$customdata)
+      updateSelectInput(session, "player_select", selected = cd$customdata)
+    }
+  }, ignoreInit = TRUE)
+  
+  # =========================
+  #   TOP PLOTS (3 tabs)
+  # =========================
+  
+  # 1) ACWR x RECOVERY
   output$acwr_scatter <- renderPlotly({
     df <- scatter_df()
     req(nrow(df) > 0)
@@ -233,7 +271,6 @@ server <- function(input, output, session) {
         x = "Score de Recuperación",
         y = "Índice de Carga (ACWR)",
         title = "ACWR & Recuperación: Resumen del equipo de hoy"
-        # caption won't show in plotly
       ) +
       theme_minimal(base_size = 14) +
       theme(
@@ -246,7 +283,7 @@ server <- function(input, output, session) {
     
     ggplotly(p, tooltip = "text", source = "acwr_scatter") %>%
       layout(
-        margin = list(b = 70),  # make room for caption
+        margin = list(b = 70),
         annotations = list(
           list(
             x = 0.90, y = -0.12, xref = "paper", yref = "paper",
@@ -258,8 +295,91 @@ server <- function(input, output, session) {
       )
   })
   
+  # 2) ACWR x REST — fade others, highlight selected
+  output$acwr_rest_scatter <- renderPlotly({
+    req(exists("rest_scatter_df", inherits = TRUE))
+    req(selected())
+    
+    df <- get("rest_scatter_df", inherits = TRUE) %>%
+      dplyr::mutate(
+        selected_flag = player == selected(),
+        hover_text = paste0(
+          "Jugador: ", player,
+          "<br>Fecha: ", latest_date,
+          "<br>Score de Descanso: ", rest_score,
+          "<br>Índice de Carga: ", round(ac_ratio, 2),
+          "<br>Estatus de Descanso: ", rest_status,
+          "<br>Estatus de Carga: ", load_status
+        )
+      )
+    
+    p <- ggplot(df, aes(x = rest_score, y = ac_ratio)) +
+      geom_hline(yintercept = c(0.8, 1.3), linetype = "dashed", color = "gray50") +
+      geom_point(aes(fill = color_status_rest, text = hover_text, customdata = player),
+                 shape = 21, size = 6, alpha = 0.30, color = "black") +
+      geom_point(data = dplyr::filter(df, selected_flag),
+                 aes(fill = color_status_rest, text = hover_text, customdata = player),
+                 shape = 21, size = 8, stroke = 2, color = "black") +
+      scale_fill_manual(values = c(green = "#2ca02c", yellow = "#ffbf00", red = "#d62728")) +
+      labs(x = "Score de Descanso", y = "Índice de Carga (ACWR)",
+           title = "ACWR & Descanso: Resumen del equipo de hoy") +
+      theme_minimal(base_size = 14) +
+      theme(legend.position = "none",
+            plot.title = element_text(hjust = 0.5, face = "bold", size = 20),
+            panel.grid.minor = element_blank(),
+            panel.grid.major.x = element_blank(),
+            panel.grid.major.y = element_blank())
+    
+    ggplotly(p, tooltip = "text", source = "acwr_rest_scatter")
+  })
   
-  # ---------- Linked panels (from dashboard.R) ----------
+  # 3) ACWR x PAIN — fade others, highlight selected, add ring
+  output$acwr_pain_scatter <- renderPlotly({
+    req(exists("pain_scatter_df", inherits = TRUE))
+    req(selected())
+    
+    df <- get("pain_scatter_df", inherits = TRUE) %>%
+      dplyr::mutate(
+        selected_flag = player == selected(),
+        hover_text = paste0(
+          "Jugador: ", player,
+          "<br>Fecha: ", latest_date,
+          "<br>Score de Dolor Muscular: ", pain_score,
+          "<br>Índice de Carga: ", round(ac_ratio, 2),
+          "<br>Estatus de Dolor Muscular: ", pain_status,
+          "<br>Estatus de Carga: ", load_status
+        )
+      )
+    
+    p <- ggplot(df, aes(x = pain_score, y = ac_ratio)) +
+      geom_hline(yintercept = c(0.8, 1.3), linetype = "dashed", color = "gray50") +
+      geom_point(aes(fill = color_status_pain, text = hover_text, customdata = player),
+                 shape = 21, size = 6, alpha = 0.30, color = "black") +
+      geom_point(data = dplyr::filter(df, selected_flag),
+                 aes(fill = color_status_pain, text = hover_text, customdata = player),
+                 shape = 21, size = 8, stroke = 2, color = "black") +
+      # <-- add the red ring using pain_flag from df
+      geom_point(data = dplyr::filter(df, pain_flag),
+                 aes(x = pain_score, y = ac_ratio),
+                 inherit.aes = FALSE, shape = 21, size = 10, stroke = 1.2,
+                 fill = NA, color = "#d62728") +
+      scale_fill_manual(values = c(green = "#2ca02c", yellow = "#ffbf00", red = "#d62728")) +
+      labs(x = "Score de Dolor Muscular", y = "Índice de Carga (ACWR)",
+           title = "ACWR & Dolor Muscular: Resumen del equipo de hoy") +
+      theme_minimal(base_size = 14) +
+      theme(legend.position = "none",
+            plot.title = element_text(hjust = 0.5, face = "bold", size = 20),
+            panel.grid.minor = element_blank(),
+            panel.grid.major.x = element_blank(),
+            panel.grid.major.y = element_blank())
+    
+    ggplotly(p, tooltip = "text", source = "acwr_pain_scatter")
+  })
+  
+  
+  # =========================
+  #  Linked panels (from dashboard.R)
+  # =========================
   output$survey_plot <- renderPlotly({
     req(selected())
     ggplotly(plot_player_recuperacion(selected()), tooltip = "text")

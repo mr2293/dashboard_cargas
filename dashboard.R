@@ -107,10 +107,10 @@ compute_pain_score <- function(soreness) {
   
   # Pain
   score <- score + case_when(
-    soreness == "Normal" ~ 8,
-    soreness == "No me duele nada" ~ 6,
-    soreness == "Adolorido de una zona" ~ 5,
-    soreness == "Muy adolorido en general" ~ 4,
+    soreness == "Normal" ~ 4,
+    soreness == "No me duele nada" ~ 5,
+    soreness == "Adolorido de una zona" ~ 6,
+    soreness == "Muy adolorido en general" ~ 8,
     
     TRUE ~ 0
   )
@@ -599,7 +599,7 @@ acwr_scatter_plot <- ggplot(
   geom_hline(yintercept = c(0.8, 1.3), linetype = "dashed", color = "gray50") +
   # puntos base (usar shape 21 para que 'fill' funcione)
   geom_point(shape = 21, size = 6, alpha = 0.95, color = "black") +
-  # anillo morado para jugadores con dolor
+  # anillo rojo para jugadores con dolor
   geom_point(
     data = dplyr::filter(scatter_df, pain_flag),
     aes(x = recovery_score, y = ac_ratio),
@@ -622,3 +622,172 @@ acwr_scatter_plot <- ggplot(
   )
 
 # ggplotly(acwr_scatter_plot, tooltip = "text")
+
+
+# ACWR x Rest Score Plot --------
+
+recuperacion_df <- recuperacion_df |>
+  mutate(
+    date = as.Date(`Marca temporal`),
+    rest_score = compute_rest_score(
+      `Nivel de Cansancio hoy (Fatiga)`,
+      `Qué tal descansaste ayer?`,
+      `Cuántas horas dormiste ayer?`
+    ),
+    pain_score = compute_pain_score(
+      `Estás adolorido de alguna parte?`
+    )
+  )
+
+micros_individual <- micros_individual |>
+  mutate(date = as.Date(date))
+
+# --- Latest ACWR per player (unchanged) ---
+latest_acwr <- micros_individual |>
+  group_by(player) |>
+  filter(date == max(date, na.rm = TRUE)) |>
+  select(player, ac_ratio)
+
+# --- Latest dates per player from wellness survey (unchanged) ---
+latest_dates <- recuperacion_df |>
+  group_by(Nombre) |>
+  summarize(latest_date = max(date, na.rm = TRUE), .groups = "drop") |>
+  rename(player = Nombre)
+
+# =========================
+#   1) ACWR x REST SCORE --------
+# =========================
+# Latest rest score per player
+latest_rest <- recuperacion_df |>
+  group_by(Nombre) |>
+  filter(date == max(date, na.rm = TRUE)) |>
+  select(player = Nombre, rest_score)
+
+rest_scatter_df <- latest_acwr |>
+  inner_join(latest_rest,  by = "player") |>
+  inner_join(latest_dates, by = "player") |>
+  mutate(
+    rest_status = if_else(rest_score >= 6, "Descansado", "Cansado"),
+    load_status = case_when(
+      ac_ratio < 0.8 ~ "Carga Baja",
+      ac_ratio > 1.3 ~ "Carga Alta",
+      TRUE ~ "Carga Óptima"
+    ),
+    color_status_rest = case_when(
+      ac_ratio >= 0.8 & ac_ratio <= 1.3 & rest_score >= 6 ~ "green",
+      (ac_ratio >= 0.8 & ac_ratio <= 1.3 & rest_score < 6) |
+        (rest_score >= 6 & (ac_ratio < 0.8 | ac_ratio > 1.3)) ~ "yellow",
+      TRUE ~ "red"
+    )
+  ) |>
+  filter(!is.na(rest_score), !is.na(ac_ratio))
+
+acwr_rest_scatter_plot <- ggplot(
+  rest_scatter_df,
+  aes(
+    x = rest_score,
+    y = ac_ratio,
+    fill = color_status_rest,
+    text = paste0(
+      "Jugador: ", player,
+      "<br>Fecha: ", latest_date,
+      "<br>Score de Descanso: ", rest_score,
+      "<br>Índice de Carga: ", round(ac_ratio, 2),
+      "<br>Estatus de Descanso: ", rest_status,
+      "<br>Estatus de Carga: ", load_status
+    ),
+    customdata = player
+  )
+) +
+  geom_hline(yintercept = c(0.8, 1.3), linetype = "dashed", color = "gray50") +
+  # use a filled shape so 'fill' shows; keep black outline
+  geom_point(shape = 21, size = 6, alpha = 0.9, color = "black", stroke = 0.7) +
+  scale_fill_manual(values = c(green = "#2ca02c", yellow = "#ffbf00", red = "#d62728")) +
+  labs(
+    x = "Score de Descanso", 
+    y = "Índice de Carga (ACWR)",
+    title = "ACWR & Descanso: Resumen del equipo de hoy"
+    ) +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "none",
+        plot.title = element_text(hjust = 0.5, face = "bold", size = 20),
+        panel.grid.minor = element_blank(),
+        panel.grid.major.x = element_blank(),
+        panel.grid.major.y = element_blank())
+
+# =========================
+#   2) ACWR x PAIN SCORE -----------
+# =========================
+# Latest pain score per player
+latest_pain2 <- recuperacion_df |>
+  filter(Nombre %in% jugs) |>
+  group_by(Nombre) |>
+  filter(date == max(date, na.rm = TRUE)) |>
+  transmute(
+    player = Nombre,
+    zona_adolorida = `Donde te encuentras adolorido? Indica cada zona de dolor`,
+    pain_flag = !is.na(zona_adolorida) & zona_adolorida != "Nada",
+    pain_score = pain_score
+  ) 
+
+pain_scatter_df <- latest_acwr |>
+  inner_join(latest_pain2,  by = "player") |>
+  inner_join(latest_dates, by = "player") |>
+  mutate(
+    pain_status = if_else(pain_score < 6, "Sin dolor", "Con dolor"),
+    load_status = case_when(
+      ac_ratio < 0.8 ~ "Carga Baja",
+      ac_ratio > 1.3 ~ "Carga Alta",
+      TRUE ~ "Carga Óptima"
+    ),
+    color_status_pain = case_when(
+      ac_ratio >= 0.8 & ac_ratio <= 1.3 & pain_score < 6 ~ "green",
+      (ac_ratio >= 0.8 & ac_ratio <= 1.3 & pain_score >= 6) |
+        (pain_score < 6 & (ac_ratio < 0.8 | ac_ratio > 1.3)) ~ "yellow",
+      TRUE ~ "red"
+    ),
+    pain_flag = !is.na(zona_adolorida) & zona_adolorida != "Nada"
+  ) |>
+  filter(!is.na(pain_score), !is.na(ac_ratio))
+
+acwr_pain_scatter_plot <- ggplot(
+  pain_scatter_df,
+  aes(
+    x = pain_score,
+    y = ac_ratio,
+    fill = color_status_pain,
+    text = paste0(
+      "Jugador: ", player,
+      "<br>Fecha: ", latest_date,
+      "<br>Score de Dolor Muscular: ", pain_score,
+      "<br>Índice de Carga: ", round(ac_ratio, 2),
+      "<br>Estatus de Dolor Muscular: ", pain_status,
+      "<br>Estatus de Carga: ", load_status,
+      ifelse(pain_flag, paste0("<br>Zona Adolorida: ", zona_adolorida), "")
+      
+    ),
+    customdata = player
+  )
+) +
+  geom_hline(yintercept = c(0.8, 1.3), linetype = "dashed", color = "gray50") +
+  geom_point(shape = 21, size = 6, alpha = 0.9, color = "black", stroke = 0.7) +
+  # anillo rojo para jugadores con dolor
+  geom_point(
+    data = dplyr::filter(pain_scatter_df, pain_flag),
+    aes(x = pain_score, y = ac_ratio),
+    inherit.aes = FALSE,
+    shape = 21, size = 9, stroke = 1.8, fill = NA, color = "#d62728"
+  ) +
+  scale_fill_manual(values = c(green = "#2ca02c", yellow = "#ffbf00", red = "#d62728")) +
+  labs(
+    x = "Score de Dolor Muscular", 
+    y = "Índice de Carga (ACWR)",
+    title = "ACWR & Dolor Muscular: Resumen del equipo de hoy"
+    ) +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "none",
+        plot.title = element_text(hjust = 0.5, face = "bold", size = 20),
+        panel.grid.minor = element_blank(),
+        panel.grid.major.x = element_blank(),
+        panel.grid.major.y = element_blank()
+)

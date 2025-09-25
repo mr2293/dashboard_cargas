@@ -241,12 +241,9 @@ plot_player_recuperacion("Álvaro Fidalgo")
 
 ## Plot A:C 7:21 Individual -----------
 
-micros_shiny_comb <- read_csv("micros/micros_shiny_comb.csv")
-
-micros_shiny_comb <- micros_shiny_comb |>
+micros_shiny_comb <- read_csv("micros/micros_shiny_comb.csv") |>
   mutate(player = case_when(
     player == "Cristian Yonathan Calderón del Real" ~ "Cristian Calderón",
-    # player == "chicote Calderón del Real" ~ "Cristian Calderón",
     player == "kevin alvarez" ~ "Kevin Álvarez",
     player == "Erick Sanchez" ~ "Erick Sánchez",
     player == "Brian Rodriguez" ~ "Brian Rodríguez",
@@ -263,127 +260,153 @@ micros_shiny_comb <- micros_shiny_comb |>
     player == "Jose Zuniga" ~ "José Raúl Zúñiga",
     player == "Allan Maximin" ~ "Allan Saint-Maximin",
     TRUE ~ player
-  ))
+  ),
+  date = as.Date(date))
 
-selected_players <- c("Álvaro Fidalgo", 
-                      "Israel Reyes",
-                      "Henry Martín", "Alejandro Zendejas", "Isaías Violante", 
-                      "Alan Cervantes", "Ramón Juárez", "Erick Sánchez", "Brian Rodríguez",
-                      "Kevin Álvarez", "Dagoberto Espinoza", "Víctor Dávila",
-                      "Rodrigo Aguirre", "Cristian Borja", "Alexis Gutiérrez", 
-                      "Néstor Araujo", "Igor Lichnovsky", "Sebastián Cáceres", 
-                      "Miguel Vázquez", "Ralph Orquin", "Jonathan Dos Santos", "Santiago Naveda",
-                      "José Raúl Zúñiga", "Allan Saint-Maximin"
-                      )
+# --- MD flag & minutes (per player/day) ---
+md_day_minutes <- micros_shiny_comb |>
+  group_by(player, date) |>
+  summarise(
+    is_md   = any(match_day == "MD"),
+    minutos = sum(drill_duration[match_day == "MD"], na.rm = TRUE),
+    .groups = "drop"
+  )
 
-micros_individual <- micros_shiny_comb |>
-  filter(player %in% selected_players)
-
-# Parámetros de suavizado exponencial
-alpha_acute <- 0.75
+# --- EWMA helpers ---
+alpha_acute   <- 0.75
 alpha_chronic <- 0.35
 
-# Función para calcular media ponderada exponencial
 ewma <- function(x, alpha) {
   n <- length(x)
-  if (n == 0) return(NA)
-  weights <- (1 - alpha)^((n - 1):0)
-  weights <- weights / sum(weights)
-  sum(x * weights)
+  if (n == 0) return(NA_real_)
+  w <- (1 - alpha)^((n - 1):0)
+  w <- w / sum(w)
+  sum(x * w)
 }
 
-# Función para crear aguda, crónica y ACWR
 process_ewma <- function(data, col) {
   data |>
     mutate(
       !!paste0("acute_load_", col) := zoo::rollapply(
-        .data[[col]],
-        width = 7,
-        FUN = \(x) ewma(x, alpha_acute),
-        align = "right",
-        fill = NA,
-        partial = TRUE
+        .data[[col]], width = 7,
+        FUN = \(x) ewma(x, alpha_acute), align = "right",
+        fill = NA, partial = TRUE
       ),
       !!paste0("chronic_load_", col) := zoo::rollapply(
-        .data[[paste0("acute_load_", col)]],
-        width = 21,
-        FUN = \(x) ewma(x, alpha_chronic),
-        align = "right",
-        fill = NA,
-        partial = TRUE
+        .data[[paste0("acute_load_", col)]], width = 21,
+        FUN = \(x) ewma(x, alpha_chronic), align = "right",
+        fill = NA, partial = TRUE
       ),
-      !!paste0("ACWR_", col) := .data[[paste0("acute_load_", col)]] / .data[[paste0("chronic_load_", col)]]
+      !!paste0("ACWR_", col) := .data[[paste0("acute_load_", col)]] /
+        .data[[paste0("chronic_load_", col)]]
     )
 }
 
-micros_individual <- micros_individual |>
+# --- Players subset (as before) ---
+selected_players <- c(
+  "Álvaro Fidalgo","Israel Reyes","Henry Martín","Alejandro Zendejas",
+  "Isaías Violante","Alan Cervantes","Ramón Juárez","Erick Sánchez",
+  "Brian Rodríguez","Kevin Álvarez","Dagoberto Espinoza","Víctor Dávila",
+  "Rodrigo Aguirre","Cristian Borja","Alexis Gutiérrez","Néstor Araujo",
+  "Igor Lichnovsky","Sebastián Cáceres","Miguel Vázquez","Ralph Orquin",
+  "Jonathan Dos Santos","Santiago Naveda","José Raúl Zúñiga","Allan Saint-Maximin"
+)
+
+# --- Build acute/chronic/ACWR and join MD info ---
+micros_individual <- micros_shiny_comb |>
+  filter(player %in% selected_players) |>
   group_by(player, date) |>
   summarize(load = sum(HSR_abs_dist, na.rm = TRUE), .groups = "drop") |>
-  arrange(player, date)
-
-micros_individual <- micros_individual |>
+  arrange(player, date) |>
   group_by(player) |>
   arrange(date) |>
   group_modify(~ process_ewma(.x, "load")) |>
-  ungroup()
-
-micros_individual <- micros_individual |>
+  ungroup() |>
   rename(
-    carga_aguda = acute_load_load,
+    carga_aguda   = acute_load_load,
     carga_cronica = chronic_load_load,
-    ac_ratio = ACWR_load
+    ac_ratio      = ACWR_load
+  ) |>
+  left_join(md_day_minutes, by = c("player", "date")) |>
+  mutate(
+    is_md   = coalesce(is_md, FALSE),
+    minutos = if_else(is_md, minutos, NA_real_)
   )
 
+# --- Flag: last four MDs ≥ 80 minutes ---
+last4_md_80_flag <- function(player, up_to_date) {
+  last4 <- md_day_minutes |>
+    filter(player == !!player, is_md, date <= up_to_date) |>
+    arrange(desc(date)) |>
+    slice_head(n = 4)
+  nrow(last4) == 4 && all(!is.na(last4$minutos) & last4$minutos >= 80)
+}
+
+# --- Plot function ---
 plot_individual_ac <- function(player) {
   
-  micros_individual <- micros_individual |>
-    mutate(date = as.Date(date))
-  
   max_day <- max(micros_individual$date, na.rm = TRUE)
-  filtered_data <- micros_individual |>
-    filter(player == !!player & date >= max_day - 20)
   
-  # --- Dynamic scaling for A:C ---
-  # 1) left y-limit from loads (with headroom)
+  filtered_data <- micros_individual |>
+    filter(player == !!player, date >= max_day - 20) |>
+    mutate(
+      tooltip_acute = if_else(
+        is_md,
+        paste0("<b>MATCH DAY</b>",
+               "<br>Jugador: ", player,
+               "<br>Fecha: ", format(date, "%Y-%m-%d"),
+               "<br>Carga Aguda: ", round(carga_aguda, 1),
+               "<br>Minutos: ", round(minutos)),
+        paste0("Jugador: ", player,
+               "<br>Fecha: ", format(date, "%Y-%m-%d"),
+               "<br>Carga Aguda: ", round(carga_aguda, 1))
+      )
+    )
+  
+  # High-competition banner flag
+  high_comp_flag <- last4_md_80_flag(player, up_to_date = max_day)
+  
+  # Dynamic scaling for A:C
   max_load <- max(c(filtered_data$carga_aguda, filtered_data$carga_cronica), na.rm = TRUE)
   left_ylim <- if (is.finite(max_load)) max_load * 1.2 else 1
-  
-  # 2) right-axis range for A:C (rounded to .5, clamp sensibly)
   ac_min <- max(0.5, floor(min(filtered_data$ac_ratio, na.rm = TRUE) * 2) / 2)
   ac_max <- max(2.0, ceiling(max(filtered_data$ac_ratio, na.rm = TRUE) * 2) / 2)
-  ac_max <- min(ac_max, 3.0)                      # (optional) don’t let it explode
+  ac_max <- min(ac_max, 3.0)
   ac_breaks <- seq(ac_min, ac_max, by = 0.5)
-  
-  # 3) scaling so that ac_max sits at the top of the left axis
   scaling_factor <- left_ylim / ac_max
   
-  ggplot(filtered_data, aes(x = date)) +
-    # Acute Load
+  g <- ggplot(filtered_data, aes(x = date)) +
+    # Acute
     geom_line(aes(y = carga_aguda, color = "Carga Aguda"), linewidth = 2) +
-    geom_point(aes(y = carga_aguda, color = "Carga Aguda",
-                   text = paste0("Jugador: ", player,
-                                 "<br>Fecha: ", date,
-                                 "<br>Carga Aguda: ", round(carga_aguda, 1))),
-               size = 3.5) +
+    geom_point(
+      data = filtered_data %>% filter(!is_md),
+      aes(y = carga_aguda, color = "Carga Aguda", text = tooltip_acute),
+      size = 3.5, shape = 16
+    ) +
+    geom_point(
+      data = filtered_data %>% filter(is_md),
+      aes(y = carga_aguda, color = "Carga Aguda", text = tooltip_acute),
+      size = 4, shape = 21, fill = "white", stroke = 1.5
+    ) +
     
-    # Chronic Load
+    # Chronic
     geom_line(aes(y = carga_cronica, color = "Carga Crónica"), linewidth = 2) +
     geom_point(aes(y = carga_cronica, color = "Carga Crónica",
                    text = paste0("Jugador: ", player,
-                                 "<br>Fecha: ", date,
+                                 "<br>Fecha: ", format(date, "%Y-%m-%d"),
                                  "<br>Carga Crónica: ", round(carga_cronica, 1))),
                size = 3.5) +
     
-    # A:C Ratio (rescaled dynamically)
+    # A:C (scaled)
     geom_line(aes(y = ac_ratio * scaling_factor, color = "Relación A:C"),
               linewidth = 2, linetype = "dashed") +
     geom_point(aes(y = ac_ratio * scaling_factor, color = "Relación A:C",
                    text = paste0("Jugador: ", player,
-                                 "<br>Fecha: ", date,
+                                 "<br>Fecha: ", format(date, "%Y-%m-%d"),
                                  "<br>Relación A:C: ", round(ac_ratio, 2))),
                size = 3.5) +
     
-    # Optional: show A:C guide lines at 0.8 and 1.3 on the left scale
+    # Guide lines for A:C
     geom_hline(yintercept = c(0.8, 1.3) * scaling_factor,
                linetype = "dashed", color = "goldenrod", alpha = 0.35) +
     
@@ -396,7 +419,7 @@ plot_individual_ac <- function(player) {
     ) +
     scale_x_date(date_breaks = "1 day", date_labels = "%d-%b") +
     
-    # (If you still want the big labels on the right edge)
+    # Right-edge labels for A:C
     geom_text(
       data = tibble(
         x = max(filtered_data$date, na.rm = TRUE) + 0.2,
@@ -429,17 +452,33 @@ plot_individual_ac <- function(player) {
       legend.title    = element_text(size = 14),
       legend.text     = element_text(size = 13)
     ) +
-    labs(title = paste("Relación A:C 7:21 –", player), x = NULL, y = "Nivel de Carga", color = NULL)
+    labs(title = paste("Relación A:C 7:21 –", player),
+         x = NULL, y = "Nivel de Carga", color = NULL)
+  
+  # Red banner if last four MDs >= 80'
+  if (high_comp_flag) {
+    g <- g + annotate(
+      "label",
+      x = mean(range(filtered_data$date, na.rm = TRUE)),
+      y = left_ylim * 0.98, vjust = 1,
+      label = "Carga Alta de Competencia",
+      fill = "#C62828", color = "white",
+      fontface = "bold", size = 6.5,
+      label.size = 0,
+      label.padding = grid::unit(0.25, "lines")
+    )
+  }
+  
+  g
 }
 
+# Example
 plot_individual_ac("Álvaro Fidalgo")
 
 # Plot Individual HSR -------
 
 micros_hsr <- micros_shiny_comb |>
-  filter(player %in% selected_players)
-
-micros_hsr <- micros_hsr |>
+  filter(player %in% selected_players) |>
   mutate(date = as.Date(date)) |>
   group_by(player, date) |>
   summarize(HSR_abs_dist = sum(HSR_abs_dist, na.rm = TRUE), .groups = "drop") |>
@@ -448,15 +487,39 @@ micros_hsr <- micros_hsr |>
   group_modify(~ process_ewma(.x, "HSR_abs_dist")) |>
   ungroup() |>
   rename(
-    acute_HSR = acute_load_HSR_abs_dist,
+    acute_HSR   = acute_load_HSR_abs_dist,
     chronic_HSR = chronic_load_HSR_abs_dist
+  ) |>
+  # <- NEW: bring in MD flag and minutes
+  left_join(md_day_minutes, by = c("player", "date")) |>
+  mutate(
+    is_md   = dplyr::coalesce(is_md, FALSE),
+    minutos = dplyr::if_else(is_md, minutos, NA_real_)
   )
 
 plot_individual_hsr <- function(player) {
   max_day <- max(micros_hsr$date, na.rm = TRUE)
   
+  # keep last ~3 weeks for the selected player and build tooltip for acute HSR
   filtered_data <- micros_hsr |>
-    filter(player == !!player & date >= max_day - 20)
+    filter(player == !!player, date >= max_day - 20) |>
+    mutate(
+      tooltip_acute = if_else(
+        is_md,
+        paste0(
+          "<b>MATCH DAY</b>",
+          "<br>Jugador: ", player,
+          "<br>Fecha: ", format(date, "%Y-%m-%d"),
+          "<br>HSR Agudo: ", round(acute_HSR, 1),
+          "<br>Minutos: ", round(minutos)
+        ),
+        paste0(
+          "Jugador: ", player,
+          "<br>Fecha: ", format(date, "%Y-%m-%d"),
+          "<br>HSR Agudo: ", round(acute_HSR, 1)
+        )
+      )
+    )
   
   # Safeguard against empty data
   if (nrow(filtered_data) == 0) {
@@ -469,22 +532,40 @@ plot_individual_hsr <- function(player) {
     )
   }
   
-  ggplot(filtered_data, aes(x = date)) +
+  # Top limit for annotation headroom
+  max_hsr <- max(c(filtered_data$acute_HSR, filtered_data$chronic_HSR), na.rm = TRUE)
+  left_ylim <- if (is.finite(max_hsr)) max_hsr * 1.2 else 1
+  
+  # Check last 4 MDs ≥ 80'
+  high_comp_flag <- last4_md_80_flag(player, up_to_date = max_day)
+  
+  g <- ggplot(filtered_data, aes(x = date)) +
+    # Acute HSR
     geom_line(aes(y = acute_HSR, color = "HSR Agudo"), linewidth = 2) +
-    geom_point(aes(y = acute_HSR, color = "HSR Agudo",
-                   text = paste0("Jugador: ", player,
-                                 "<br>Fecha: ", date,
-                                 "<br>HSR Agudo: ", round(acute_HSR, 1))),
-               size = 3.5) +
+    # non-MD: filled points
+    geom_point(
+      data = dplyr::filter(filtered_data, !is_md),
+      aes(y = acute_HSR, color = "HSR Agudo", text = tooltip_acute),
+      size = 3.5, shape = 16
+    ) +
+    # MD: hollow points (white fill, blue outline)
+    geom_point(
+      data = dplyr::filter(filtered_data, is_md),
+      aes(y = acute_HSR, color = "HSR Agudo", text = tooltip_acute),
+      size = 4, shape = 21, fill = "white", stroke = 1.5
+    ) +
     
+    # Chronic HSR
     geom_line(aes(y = chronic_HSR, color = "HSR Crónico"), linewidth = 2) +
     geom_point(aes(y = chronic_HSR, color = "HSR Crónico",
                    text = paste0("Jugador: ", player,
-                                 "<br>Fecha: ", date,
+                                 "<br>Fecha: ", format(date, "%Y-%m-%d"),
                                  "<br>HSR Crónico: ", round(chronic_HSR, 1))),
                size = 3.5) +
     
     scale_x_date(date_breaks = "1 day", date_labels = "%d-%b") +
+    # ensure room for the banner
+    scale_y_continuous(limits = c(0, left_ylim)) +
     labs(
       title = paste("HSR (>21 km/h) Agudo vs. Crónico –", player),
       x = NULL, y = "HSR en metros", color = NULL,
@@ -507,11 +588,28 @@ plot_individual_hsr <- function(player) {
       legend.text = element_text(size = 13)
     ) +
     scale_color_manual(values = c(
-      "HSR Agudo" = "#0072B2",
+      "HSR Agudo"   = "#0072B2",
       "HSR Crónico" = "#4D4D4D"
     ))
+  
+  # Red banner if last four MDs are all ≥ 80'
+  if (high_comp_flag) {
+    g <- g + annotate(
+      "label",
+      x = mean(range(filtered_data$date, na.rm = TRUE)),
+      y = left_ylim * 0.98, vjust = 1,
+      label = "Carga Alta de Competencia",
+      fill = "#C62828", color = "white",
+      fontface = "bold", size = 6.5,
+      label.size = 0,
+      label.padding = grid::unit(0.25, "lines")
+    )
+  }
+  
+  g
 }
 
+# Example
 plot_individual_hsr("Álvaro Fidalgo")
 
 

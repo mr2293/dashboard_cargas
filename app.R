@@ -140,6 +140,25 @@ server <- function(input, output, session) {
     p
   }
   
+  # Add competition banner in Plotly (last 4 MDs ≥ 80')
+  add_competition_banner <- function(p, player, up_to_date) {
+    if (last4_md_80_flag(player, up_to_date)) {
+      p <- p %>%
+        layout(
+          annotations = list(list(
+            x = 0.5, xref = "paper", xanchor = "center",
+            y = 1.08, yref = "paper", yanchor = "top",
+            text = "<b>Carga Alta de Competencia</b>",
+            showarrow = FALSE,
+            bgcolor = "#C62828", bordercolor = "#C62828",
+            font = list(color = "white", size = 16),
+            opacity = 0.95
+          ))
+        )
+    }
+    p
+  }
+  
   # ---------- Build ACWR x Recovery data reactively ----------
   scatter_df <- reactive({
     roster <- player_info$player
@@ -387,13 +406,21 @@ server <- function(input, output, session) {
   
   output$hsr_plot <- renderPlotly({
     req(selected())
-    ggplotly(plot_individual_hsr(selected()), tooltip = "text")
+    up_to <- max(micros_hsr$date, na.rm = TRUE)
+    
+    p <- to_plotly(plot_individual_hsr(selected()), src = "hsr_plot")
+    add_competition_banner(p, selected(), up_to)
   })
+  
   
   output$ac_plot <- renderPlotly({
     req(selected())
-    ggplotly(plot_individual_ac(selected()), tooltip = "text")
+    up_to <- max(micros_individual$date, na.rm = TRUE)
+    
+    p <- to_plotly(plot_individual_ac(selected()), src = "ac_plot")
+    add_competition_banner(p, selected(), up_to)
   })
+  
   
   output$player_info_box <- renderUI({
     req(selected())

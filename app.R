@@ -269,28 +269,53 @@ server <- function(input, output, session) {
   
   # 1) ACWR x RECOVERY
   output$acwr_scatter <- renderPlotly({
-    df <- scatter_df()
+    df <- scatter_df()                 # must already include: player, ac_ratio, recovery_score,
+    # color_status, pain_flag, zona_adolorida, latest_date
     req(nrow(df) > 0)
     
-    df <- df %>% mutate(selected_flag = player == selected())
+    df <- df %>%
+      dplyr::mutate(
+        pain_flag     = tidyr::replace_na(pain_flag, FALSE),
+        selected_flag = player == selected(),
+        hover_text = paste0(
+          "Jugadora: ", player,
+          "<br>Fecha: ", latest_date,
+          "<br>Score de Recuperación: ", recovery_score,
+          "<br>Índice de Carga: ", round(ac_ratio, 2),
+          "<br>Estatus de Recuperación: ", ifelse(recovery_score >= 6, "Recuperada", "Fatigada"),
+          "<br>Estatus de Carga: ", dplyr::case_when(
+            ac_ratio < 0.8 ~ "Carga Baja",
+            ac_ratio > 1.3 ~ "Carga Alta",
+            TRUE ~ "Carga Óptima"
+          ),
+          ifelse(pain_flag, paste0("<br>Zona Adolorida: ", zona_adolorida), "")
+        )
+      )
+    
+    # one red ring per flagged player (prevents multiple outlines)
+    rings_df <- df %>%
+      dplyr::filter(pain_flag) %>%
+      dplyr::distinct(player, .keep_all = TRUE)
+    # If you want one ring per unique coordinate instead, use:
+    # dplyr::distinct(player, recovery_score, ac_ratio, .keep_all = TRUE)
     
     p <- ggplot(df, aes(x = recovery_score, y = ac_ratio)) +
       geom_hline(yintercept = c(0.8, 1.3), linetype = "dashed", color = "gray50") +
+      # base points (shape 21 to allow fill mapped to color_status)
       geom_point(aes(fill = color_status, text = hover_text, customdata = player),
                  shape = 21, size = 6, alpha = 0.35, color = "black") +
-      geom_point(data = dplyr::filter(df, pain_flag),
+      # red pain rings (deduped)
+      geom_point(data = rings_df,
                  aes(x = recovery_score, y = ac_ratio),
-                 inherit.aes = FALSE, shape = 21, size = 10, stroke = 1.2,
-                 fill = NA, color = "#d62728") +
+                 inherit.aes = FALSE,
+                 shape = 21, size = 10, stroke = 1.2, fill = NA, color = "#d62728") +
+      # selected highlight on top
       geom_point(data = dplyr::filter(df, selected_flag),
                  aes(fill = color_status, text = hover_text, customdata = player),
                  shape = 21, size = 8, stroke = 1.2, color = "black") +
       scale_fill_manual(values = c(green = "#2ca02c", yellow = "#ffbf00", red = "#d62728")) +
-      labs(
-        x = "Score de Recuperación",
-        y = "Índice de Carga (ACWR)",
-        title = "ACWR & Recuperación: Resumen del equipo de hoy"
-      ) +
+      labs(x = "Score de Recuperación", y = "Índice de Carga (ACWR)",
+           title = "ACWR & Recuperación: Resumen del equipo de hoy") +
       theme_minimal(base_size = 14) +
       theme(
         legend.position = "none",
@@ -359,6 +384,7 @@ server <- function(input, output, session) {
     
     df <- get("pain_scatter_df", inherits = TRUE) %>%
       dplyr::mutate(
+        pain_flag     = tidyr::replace_na(pain_flag, FALSE),
         selected_flag = player == selected(),
         hover_text = paste0(
           "Jugador: ", player,
@@ -366,35 +392,54 @@ server <- function(input, output, session) {
           "<br>Score de Dolor Muscular: ", pain_score,
           "<br>Índice de Carga: ", round(ac_ratio, 2),
           "<br>Estatus de Dolor Muscular: ", pain_status,
-          "<br>Estatus de Carga: ", load_status
+          "<br>Estatus de Carga: ", load_status,
+          ifelse(pain_flag, paste0("<br>Zona Adolorida: ", zona_adolorida), "")
         )
       )
     
+    # one red ring per flagged player (prevents duplicate outlines)
+    rings_df <- df %>%
+      dplyr::filter(pain_flag) %>%
+      dplyr::distinct(player, .keep_all = TRUE)
+    # If you prefer one ring per unique coordinate:
+    # dplyr::distinct(player, pain_score, ac_ratio, .keep_all = TRUE)
+    
     p <- ggplot(df, aes(x = pain_score, y = ac_ratio)) +
       geom_hline(yintercept = c(0.8, 1.3), linetype = "dashed", color = "gray50") +
-      geom_point(aes(fill = color_status_pain, text = hover_text, customdata = player),
-                 shape = 21, size = 6, alpha = 0.30, color = "black") +
-      geom_point(data = dplyr::filter(df, selected_flag),
-                 aes(fill = color_status_pain, text = hover_text, customdata = player),
-                 shape = 21, size = 8, stroke = 2, color = "black") +
-      # <-- add the red ring using pain_flag from df
-      geom_point(data = dplyr::filter(df, pain_flag),
-                 aes(x = pain_score, y = ac_ratio),
-                 inherit.aes = FALSE, shape = 21, size = 10, stroke = 1.2,
-                 fill = NA, color = "#d62728") +
+      # base points (use shape=21 so fill works)
+      geom_point(
+        aes(fill = color_status_pain, text = hover_text, customdata = player),
+        shape = 21, size = 6, alpha = 0.30, color = "black", stroke = 0.7
+      ) +
+      # selected player highlight
+      geom_point(
+        data = dplyr::filter(df, selected_flag),
+        aes(fill = color_status_pain, text = hover_text, customdata = player),
+        shape = 21, size = 8, stroke = 2, color = "black"
+      ) +
+      # red rings for 3-day pain flag (deduped)
+      geom_point(
+        data = rings_df,
+        aes(x = pain_score, y = ac_ratio),
+        inherit.aes = FALSE,
+        shape = 21, size = 10, stroke = 1.2, fill = NA, color = "#d62728"
+      ) +
       scale_fill_manual(values = c(green = "#2ca02c", yellow = "#ffbf00", red = "#d62728")) +
-      labs(x = "Score de Dolor Muscular", y = "Índice de Carga (ACWR)",
-           title = "ACWR & Dolor Muscular: Resumen del equipo de hoy") +
+      labs(
+        x = "Score de Dolor Muscular", y = "Índice de Carga (ACWR)",
+        title = "ACWR & Dolor Muscular: Resumen del equipo de hoy"
+      ) +
       theme_minimal(base_size = 14) +
-      theme(legend.position = "none",
-            plot.title = element_text(hjust = 0.5, face = "bold", size = 20),
-            panel.grid.minor = element_blank(),
-            panel.grid.major.x = element_blank(),
-            panel.grid.major.y = element_blank())
+      theme(
+        legend.position = "none",
+        plot.title = element_text(hjust = 0.5, face = "bold", size = 20),
+        panel.grid.minor = element_blank(),
+        panel.grid.major.x = element_blank(),
+        panel.grid.major.y = element_blank()
+      )
     
     ggplotly(p, tooltip = "text", source = "acwr_pain_scatter")
   })
-  
   
   # =========================
   #  Linked panels (from dashboard.R)

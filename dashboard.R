@@ -379,12 +379,12 @@ plot_individual_ac <- function(player) {
     # Acute
     geom_line(aes(y = carga_aguda, color = "Carga Aguda"), linewidth = 2) +
     geom_point(
-      data = filtered_data %>% filter(!is_md),
+      data = filtered_data |> filter(!is_md),
       aes(y = carga_aguda, color = "Carga Aguda", text = tooltip_acute),
       size = 3.5, shape = 16
     ) +
     geom_point(
-      data = filtered_data %>% filter(is_md),
+      data = filtered_data |> filter(is_md),
       aes(y = carga_aguda, color = "Carga Aguda", text = tooltip_acute),
       size = 4, shape = 21, fill = "white", stroke = 1.5
     ) +
@@ -612,115 +612,12 @@ plot_individual_hsr <- function(player) {
 # Example
 plot_individual_hsr("Álvaro Fidalgo")
 
-
-# Scatter de ACWR & Recuperación -------
-
 jugs = c("Néstor Araujo", "Brian Rodríguez", "Sebastián Cáceres", "Alan Cervantes", 
-           "Rodolfo Cota", "Erick Sánchez", "Álvaro Fidalgo", "Henry Martín", "Israel Reyes",
-           "Jonathan Dos Santos", "Kevin Álvarez", "Luis Ángel Malagón", "Miguel Vázquez", 
-           "Ramón Juárez", "Alejandro Zendejas", "Rodrigo Aguirre", "Cristian Borja", 
-           "Dagoberto Espinoza", "Víctor Dávila", "Igor Lichnovsky", "Santiago Naveda", "Ralph Orquin",
-           "Alexis Gutiérrez", "Isaías Violante", "José Raúl Zúñiga", "Allan Saint-Maximin")
-
-# Asegurarse que las fechas están en formato Date
-recuperacion_df <- recuperacion_df |>
-  mutate(date = as.Date(`Marca temporal`))
-
-latest_pain <- recuperacion_df %>%
-  filter(Nombre %in% jugs) %>%
-  group_by(Nombre) %>%
-  slice_max(order_by = date, n = 1, with_ties = FALSE) %>%
-  transmute(
-    player = Nombre,
-    zona_adolorida = `Donde te encuentras adolorido? Indica cada zona de dolor`,
-    pain_flag = !is.na(zona_adolorida) & zona_adolorida != "Nada"
-  )
-
-micros_individual <- micros_individual |>
-  mutate(date = as.Date(date))
-
-# Último ACWR por jugador
-latest_acwr <- micros_individual |>
-  group_by(player) |>
-  filter(date == max(date, na.rm = TRUE)) |>
-  select(player, ac_ratio)
-
-# Último recovery score por jugador
-latest_recovery <- recuperacion_df |>
-  group_by(Nombre) |>
-  filter(date == max(date, na.rm = TRUE)) |>
-  select(player = Nombre, recovery_score)
-
-latest_dates <- recuperacion_df |>
-  group_by(`Nombre`) |>
-  summarize(latest_date = max(date, na.rm = TRUE), .groups = "drop") |>
-  rename(player = Nombre)
-
-# Combinar datasets
-scatter_df <- latest_acwr |>
-  inner_join(latest_recovery, by = "player") |>
-  inner_join(latest_dates,   by = "player") |>
-  inner_join(latest_pain,     by = "player") |>
-  mutate(
-    recovery_status = if_else(recovery_score >= 6, "Recuperado", "Fatigado"),
-    load_status = case_when(
-      ac_ratio < 0.8 ~ "Carga Baja",
-      ac_ratio > 1.3 ~ "Carga Alta",
-      TRUE ~ "Carga Óptima"
-    ),
-    color_status = case_when(
-      ac_ratio >= 0.8 & ac_ratio <= 1.3 & recovery_score >= 6 ~ "green",
-      (ac_ratio >= 0.8 & ac_ratio <= 1.3 & recovery_score < 6) |
-        (recovery_score >= 6 & (ac_ratio < 0.8 | ac_ratio > 1.3)) ~ "yellow",
-      TRUE ~ "red"
-    ),
-    pain_flag = !is.na(zona_adolorida) & zona_adolorida != "Nada"
-  )
-
-acwr_scatter_plot <- ggplot(
-  scatter_df,
-  aes(
-    x = recovery_score,
-    y = ac_ratio,
-    fill = color_status,
-    text = paste0(
-      "Jugador: ", player,
-      "<br>Fecha: ", latest_date,
-      "<br>Score de Recuperación: ", recovery_score,
-      "<br>Índice de Carga: ", round(ac_ratio, 2),
-      "<br>Estatus de Recuperación: ", recovery_status,
-      "<br>Estatus de Carga: ", load_status,
-      ifelse(pain_flag, paste0("<br>Zona Adolorida: ", zona_adolorida), "")
-    )
-  )
-) +
-  geom_hline(yintercept = c(0.8, 1.3), linetype = "dashed", color = "gray50") +
-  # puntos base (usar shape 21 para que 'fill' funcione)
-  geom_point(shape = 21, size = 6, alpha = 0.95, color = "black") +
-  # anillo rojo para jugadores con dolor
-  geom_point(
-    data = dplyr::filter(scatter_df, pain_flag),
-    aes(x = recovery_score, y = ac_ratio),
-    inherit.aes = FALSE,
-    shape = 21, size = 9, stroke = 1.8, fill = NA, color = "#d62728"
-  ) +
-  scale_fill_manual(values = c(green = "#2ca02c", yellow = "#ffbf00", red = "#d62728")) +
-  labs(
-    x = "Score de Recuperación",
-    y = "Índice de Carga (ACWR)",
-    title = "ACWR & Recuperación: Resumen del equipo de hoy"
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(
-    legend.position = "none",
-    plot.title = element_text(hjust = 0.5, face = "bold", size = 20),
-    panel.grid.minor = element_blank(),
-    panel.grid.major.x = element_blank(),
-    panel.grid.major.y = element_blank()
-  )
-
-# ggplotly(acwr_scatter_plot, tooltip = "text")
-
+         "Rodolfo Cota", "Erick Sánchez", "Álvaro Fidalgo", "Henry Martín", "Israel Reyes",
+         "Jonathan Dos Santos", "Kevin Álvarez", "Luis Ángel Malagón", "Miguel Vázquez", 
+         "Ramón Juárez", "Alejandro Zendejas", "Rodrigo Aguirre", "Cristian Borja", 
+         "Dagoberto Espinoza", "Víctor Dávila", "Igor Lichnovsky", "Santiago Naveda", "Ralph Orquin",
+         "Alexis Gutiérrez", "Isaías Violante", "José Raúl Zúñiga", "Allan Saint-Maximin")
 
 # ACWR x Rest Score Plot --------
 
@@ -818,18 +715,28 @@ acwr_rest_scatter_plot <- ggplot(
 # =========================
 # Latest pain score per player
 latest_pain2 <- recuperacion_df |>
+  mutate(date = as.Date(`Marca temporal`)) |>
   filter(Nombre %in% jugs) |>
+  arrange(Nombre, date) |>
   group_by(Nombre) |>
-  filter(date == max(date, na.rm = TRUE)) |>
+  mutate(
+    zona_adolorida = `Donde te encuentras adolorido? Indica cada zona de dolor`,
+    pain_day = !is.na(zona_adolorida) & zona_adolorida != "Nada",
+    three_day_pain = pain_day &
+      lag(pain_day, 1, default = FALSE) &
+      lag(pain_day, 2, default = FALSE)
+  ) |>
+  # IMPORTANT: keep only ONE latest row per player (no ties)
+  slice_max(order_by = date, n = 1, with_ties = FALSE) |>
   transmute(
     player = Nombre,
-    zona_adolorida = `Donde te encuentras adolorido? Indica cada zona de dolor`,
-    pain_flag = !is.na(zona_adolorida) & zona_adolorida != "Nada",
+    zona_adolorida,
+    pain_flag = three_day_pain,
     pain_score = pain_score
-  ) 
+  )
 
 pain_scatter_df <- latest_acwr |>
-  inner_join(latest_pain2,  by = "player") |>
+  inner_join(latest_pain2 |> dplyr::rename(three_day_pain = pain_flag), by = "player") |>
   inner_join(latest_dates, by = "player") |>
   mutate(
     pain_status = if_else(pain_score < 6, "Sin dolor", "Con dolor"),
@@ -844,8 +751,9 @@ pain_scatter_df <- latest_acwr |>
         (pain_score < 6 & (ac_ratio < 0.8 | ac_ratio > 1.3)) ~ "yellow",
       TRUE ~ "red"
     ),
-    pain_flag = !is.na(zona_adolorida) & zona_adolorida != "Nada"
+    pain_flag = three_day_pain
   ) |>
+  select(-three_day_pain) |>   # optional: drop helper column
   filter(!is.na(pain_score), !is.na(ac_ratio))
 
 acwr_pain_scatter_plot <- ggplot(
@@ -889,3 +797,119 @@ acwr_pain_scatter_plot <- ggplot(
         panel.grid.major.x = element_blank(),
         panel.grid.major.y = element_blank()
 )
+
+# Scatter de ACWR & Recuperación -------
+
+# Asegurarse que las fechas están en formato Date
+recuperacion_df <- recuperacion_df |>
+  mutate(date = as.Date(`Marca temporal`))
+
+# === FIX: compute 3-day streak, THEN filter to latest date (same as the correct chunk) ===
+latest_pain <- recuperacion_df |>
+  filter(Nombre %in% jugs) |>
+  arrange(Nombre, date) |>
+  group_by(Nombre) |>
+  mutate(
+    zona_adolorida = `Donde te encuentras adolorido? Indica cada zona de dolor`,
+    pain_day = !is.na(zona_adolorida) & zona_adolorida != "Nada",
+    three_day_pain = pain_day &
+      lag(pain_day, 1, default = FALSE) &
+      lag(pain_day, 2, default = FALSE)
+  ) |>
+  filter(date == max(date, na.rm = TRUE)) |>
+  transmute(
+    player = Nombre,
+    zona_adolorida,
+    pain_flag = three_day_pain
+  )
+
+micros_individual <- micros_individual |>
+  mutate(date = as.Date(date))
+
+# Último ACWR por jugador
+latest_acwr <- micros_individual |>
+  group_by(player) |>
+  filter(date == max(date, na.rm = TRUE)) |>
+  select(player, ac_ratio)
+
+# Último recovery score por jugador
+latest_recovery <- recuperacion_df |>
+  group_by(Nombre) |>
+  filter(date == max(date, na.rm = TRUE)) |>
+  select(player = Nombre, recovery_score)
+
+latest_dates <- recuperacion_df |>
+  group_by(Nombre) |>
+  summarize(latest_date = max(date, na.rm = TRUE), .groups = "drop") |>
+  rename(player = Nombre)
+
+scatter_df <- latest_acwr |>
+  inner_join(latest_recovery, by = "player") |>
+  inner_join(latest_dates,   by = "player") |>
+  inner_join(latest_pain2 |> dplyr::rename(three_day_pain = pain_flag), by = "player") |>
+  mutate(
+    recovery_status = if_else(recovery_score >= 6, "Recuperado", "Fatigado"),
+    load_status = case_when(
+      ac_ratio < 0.8 ~ "Carga Baja",
+      ac_ratio > 1.3 ~ "Carga Alta",
+      TRUE ~ "Carga Óptima"
+    ),
+    color_status = case_when(
+      ac_ratio >= 0.8 & ac_ratio <= 1.3 & recovery_score >= 6 ~ "green",
+      (ac_ratio >= 0.8 & ac_ratio <= 1.3 & recovery_score < 6) |
+        (recovery_score >= 6 & (ac_ratio < 0.8 | ac_ratio > 1.3)) ~ "yellow",
+      TRUE ~ "red"
+    ),
+    pain_flag = three_day_pain
+  ) |>
+  select(-three_day_pain) |>
+  filter(!is.na(pain_score), !is.na(ac_ratio)) |>
+  distinct(player, .keep_all = TRUE)
+
+rings_df <- scatter_df |>
+  dplyr::filter(pain_flag) |>
+  # keep exactly one ring per player
+  dplyr::distinct(player, .keep_all = TRUE)
+
+acwr_scatter_plot <- ggplot(
+  scatter_df,
+  aes(
+    x = recovery_score,
+    y = ac_ratio,
+    fill = color_status,
+    text = paste0(
+      "Jugador: ", player,
+      "<br>Fecha: ", latest_date,
+      "<br>Score de Recuperación: ", recovery_score,
+      "<br>Índice de Carga: ", round(ac_ratio, 2),
+      "<br>Estatus de Recuperación: ", recovery_status,
+      "<br>Estatus de Carga: ", load_status,
+      ifelse(pain_flag, paste0("<br>Zona Adolorida: ", zona_adolorida), "")
+    )
+  )
+) +
+  geom_hline(yintercept = c(0.8, 1.3), linetype = "dashed", color = "gray50") +
+  geom_point(shape = 21, size = 6, alpha = 0.95, color = "black") +
+  # ring layer uses the deduped data
+  geom_point(
+    data = rings_df,
+    aes(x = recovery_score, y = ac_ratio),
+    inherit.aes = FALSE,
+    shape = 21, size = 9, stroke = 1.8, fill = NA, color = "#d62728"
+  ) +
+  scale_fill_manual(values = c(green = "#2ca02c", yellow = "#ffbf00", red = "#d62728")) +
+  labs(
+    x = "Score de Recuperación",
+    y = "Índice de Carga (ACWR)",
+    title = "ACWR & Recuperación: Resumen del equipo de hoy"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 20),
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank(),
+    panel.grid.major.y = element_blank()
+  )
+
+# ggplotly(acwr_scatter_plot, tooltip = "text")

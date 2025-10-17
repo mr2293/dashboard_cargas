@@ -804,71 +804,83 @@ acwr_pain_scatter_plot <- ggplot(
 recuperacion_df <- recuperacion_df |>
   mutate(date = as.Date(`Marca temporal`))
 
-# === FIX: compute 3-day streak, THEN filter to latest date (same as the correct chunk) ===
-latest_pain <- recuperacion_df |>
-  filter(Nombre %in% jugs) |>
-  arrange(Nombre, date) |>
-  group_by(Nombre) |>
-  mutate(
-    zona_adolorida = `Donde te encuentras adolorido? Indica cada zona de dolor`,
-    pain_day = !is.na(zona_adolorida) & zona_adolorida != "Nada",
-    three_day_pain = pain_day &
-      lag(pain_day, 1, default = FALSE) &
-      lag(pain_day, 2, default = FALSE)
-  ) |>
-  filter(date == max(date, na.rm = TRUE)) |>
-  transmute(
-    player = Nombre,
-    zona_adolorida,
-    pain_flag = three_day_pain
-  )
+# # === FIX: compute 3-day streak, THEN filter to latest date (same as the correct chunk) ===
+# latest_pain <- recuperacion_df |>
+#   filter(Nombre %in% jugs) |>
+#   arrange(Nombre, date) |>
+#   group_by(Nombre) |>
+#   mutate(
+#     zona_adolorida = `Donde te encuentras adolorido? Indica cada zona de dolor`,
+#     pain_day = !is.na(zona_adolorida) & zona_adolorida != "Nada",
+#     three_day_pain = pain_day &
+#       lag(pain_day, 1, default = FALSE) &
+#       lag(pain_day, 2, default = FALSE)
+#   ) |>
+#   filter(date == max(date, na.rm = TRUE)) |>
+#   transmute(
+#     player = Nombre,
+#     zona_adolorida,
+#     pain_flag = three_day_pain
+#   )
 
+# Autoridad para los anillos: usar únicamente latest_pain2 ya calculado en el bloque de Dolor
+rings_auth <- latest_pain2 |>
+  dplyr::filter(pain_flag) |>
+  dplyr::distinct(player, .keep_all = TRUE) |>
+  dplyr::select(player, zona_adolorida, pain_flag)
+
+# Asegurar fecha en micros
 micros_individual <- micros_individual |>
-  mutate(date = as.Date(date))
+  dplyr::mutate(date = as.Date(date))
 
 # Último ACWR por jugador
 latest_acwr <- micros_individual |>
-  group_by(player) |>
-  filter(date == max(date, na.rm = TRUE)) |>
-  select(player, ac_ratio)
+  dplyr::group_by(player) |>
+  dplyr::filter(date == max(date, na.rm = TRUE)) |>
+  dplyr::ungroup() |>
+  dplyr::select(player, ac_ratio)
 
 # Último recovery score por jugador
 latest_recovery <- recuperacion_df |>
-  group_by(Nombre) |>
-  filter(date == max(date, na.rm = TRUE)) |>
-  select(player = Nombre, recovery_score)
+  dplyr::group_by(Nombre) |>
+  dplyr::filter(date == max(date, na.rm = TRUE)) |>
+  dplyr::ungroup() |>
+  dplyr::select(player = Nombre, recovery_score)
 
+# Última fecha por jugador
 latest_dates <- recuperacion_df |>
-  group_by(Nombre) |>
-  summarize(latest_date = max(date, na.rm = TRUE), .groups = "drop") |>
-  rename(player = Nombre)
+  dplyr::group_by(Nombre) |>
+  dplyr::summarize(latest_date = max(date, na.rm = TRUE), .groups = "drop") |>
+  dplyr::rename(player = Nombre)
 
+# Data frame para el scatter de Recuperación x ACWR
 scatter_df <- latest_acwr |>
-  inner_join(latest_recovery, by = "player") |>
-  inner_join(latest_dates,   by = "player") |>
-  inner_join(latest_pain2 |> dplyr::rename(three_day_pain = pain_flag), by = "player") |>
-  mutate(
-    recovery_status = if_else(recovery_score >= 6, "Recuperado", "Fatigado"),
-    load_status = case_when(
+  dplyr::inner_join(latest_recovery, by = "player") |>
+  dplyr::inner_join(latest_dates,   by = "player") |>
+  # Traer únicamente la bandera de dolor de 3 días desde la fuente autorizada
+  dplyr::left_join(rings_auth, by = "player") |>
+  dplyr::mutate(
+    pain_flag = tidyr::replace_na(pain_flag, FALSE),
+    recovery_status = dplyr::if_else(recovery_score >= 6, "Recuperado", "Fatigado"),
+    load_status = dplyr::case_when(
       ac_ratio < 0.8 ~ "Carga Baja",
       ac_ratio > 1.3 ~ "Carga Alta",
       TRUE ~ "Carga Óptima"
     ),
-    color_status = case_when(
+    color_status = dplyr::case_when(
       ac_ratio >= 0.8 & ac_ratio <= 1.3 & recovery_score >= 6 ~ "green",
       (ac_ratio >= 0.8 & ac_ratio <= 1.3 & recovery_score < 6) |
         (recovery_score >= 6 & (ac_ratio < 0.8 | ac_ratio > 1.3)) ~ "yellow",
       TRUE ~ "red"
-    ),
-    pain_flag = three_day_pain
+    )
   ) |>
-  select(-three_day_pain) |>
-  filter(!is.na(pain_score), !is.na(ac_ratio)) |>
-  distinct(player, .keep_all = TRUE)
+  # IMPORTANTE: filtrar con variables de recuperación, no de dolor
+  dplyr::filter(!is.na(recovery_score), !is.na(ac_ratio)) |>
+  dplyr::distinct(player, .keep_all = TRUE)
 
+# Un anillo rojo por jugadora con bandera TRUE
 rings_df <- scatter_df |>
   dplyr::filter(pain_flag) |>
-  # keep exactly one ring per player
   dplyr::distinct(player, .keep_all = TRUE)
 
 acwr_scatter_plot <- ggplot(
@@ -913,3 +925,6 @@ acwr_scatter_plot <- ggplot(
   )
 
 # ggplotly(acwr_scatter_plot, tooltip = "text")
+
+sum(pain_scatter_df$pain_flag)
+sum(rings_df$pain_flag)

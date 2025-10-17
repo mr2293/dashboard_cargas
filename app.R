@@ -143,7 +143,7 @@ server <- function(input, output, session) {
   # Add competition banner in Plotly (last 4 MDs ≥ 80')
   add_competition_banner <- function(p, player, up_to_date) {
     if (last4_md_80_flag(player, up_to_date)) {
-      p <- p %>%
+      p <- p |>
         layout(
           annotations = list(list(
             x = 0.5, xref = "paper", xanchor = "center",
@@ -163,59 +163,70 @@ server <- function(input, output, session) {
   scatter_df <- reactive({
     roster <- player_info$player
     
+    # Pull authoritative 3-day pain flag computed in dashboard.R
+    latest_pain2 <- get("latest_pain2", inherits = TRUE)
+    
+    rings_auth <- latest_pain2 |>
+      dplyr::filter(pain_flag) |>
+      dplyr::distinct(player, .keep_all = TRUE) |>
+      dplyr::select(player, zona_adolorida, pain_flag)
+    
     # Latest ACWR per player
-    ac_last <- micros_individual %>%
-      mutate(date = as.Date(date)) %>%
-      filter(player %in% roster) %>%
-      group_by(player) %>%
-      slice_max(order_by = date, n = 1, with_ties = FALSE) %>%
-      ungroup() %>%
-      select(player, ac_ratio)
+    ac_last <- get("micros_individual", inherits = TRUE) |>
+      dplyr::mutate(date = as.Date(date)) |>
+      dplyr::filter(player %in% roster) |>
+      dplyr::group_by(player) |>
+      dplyr::slice_max(order_by = date, n = 1, with_ties = FALSE) |>
+      dplyr::ungroup() |>
+      dplyr::select(player, ac_ratio)
     
-    # Latest recovery + date + pain; handle either "Zona Adolorida" or long question name
-    rec_cols <- names(recuperacion_df)
-    pain_col <- if ("Zona Adolorida" %in% rec_cols) "Zona Adolorida"
-    else "Donde te encuentras adolorido? Indica cada zona de dolor"
+    # Latest recovery + date
+    recuperacion_df <- get("recuperacion_df", inherits = TRUE)
     
-    rec_last <- recuperacion_df %>%
-      mutate(date = as.Date(`Marca temporal`)) %>%
-      filter(Nombre %in% roster) %>%
-      group_by(Nombre) %>%
-      slice_max(order_by = date, n = 1, with_ties = FALSE) %>%
-      ungroup() %>%
-      transmute(
-        player         = Nombre,
+    rec_last <- recuperacion_df |>
+      dplyr::mutate(date = as.Date(`Marca temporal`)) |>
+      dplyr::filter(Nombre %in% roster) |>
+      dplyr::group_by(Nombre) |>
+      dplyr::slice_max(order_by = date, n = 1, with_ties = FALSE) |>
+      dplyr::ungroup() |>
+      dplyr::transmute(
+        player      = Nombre,
         recovery_score,
-        latest_date    = date,
-        zona_adolorida = .data[[pain_col]]
+        latest_date = date
       )
     
-    # Combine + flags + color/status
-    ac_last %>%
-      inner_join(rec_last, by = "player") %>%
-      mutate(
-        recovery_status = if_else(recovery_score >= 6, "Recuperado", "Fatigado"),
-        load_status = case_when(
+    ac_last |>
+      dplyr::inner_join(rec_last, by = "player") |>
+      # join ONLY the authoritative ring info; missing -> FALSE
+      dplyr::left_join(rings_auth, by = "player") |>
+      dplyr::mutate(
+        pain_flag = tidyr::replace_na(pain_flag, FALSE),
+        recovery_status = dplyr::if_else(recovery_score >= 6, "Recuperado", "Fatigado"),
+        load_status = dplyr::case_when(
           ac_ratio < 0.8 ~ "Carga Baja",
           ac_ratio > 1.3 ~ "Carga Alta",
           TRUE ~ "Carga Óptima"
         ),
-        color_status = case_when(
+        color_status = dplyr::case_when(
           ac_ratio >= 0.8 & ac_ratio <= 1.3 & recovery_score >= 6 ~ "green",
           (ac_ratio >= 0.8 & ac_ratio <= 1.3 & recovery_score < 6) |
             (recovery_score >= 6 & (ac_ratio < 0.8 | ac_ratio > 1.3)) ~ "yellow",
           TRUE ~ "red"
         ),
-        pain_flag = !is.na(zona_adolorida) & zona_adolorida != "Nada",
         hover_text = paste0(
           "Jugador: ", player,
           "<br>Fecha: ", latest_date,
           "<br>Score de Recuperación: ", recovery_score,
           "<br>Índice de Carga: ", round(ac_ratio, 2),
           "<br>Estatus de Recuperación: ", recovery_status,
-          "<br>Estatus de Carga: ", load_status
+          "<br>Estatus de Carga: ", load_status,
+          ifelse(pain_flag & !is.na(zona_adolorida),
+                 paste0("<br>Zona Adolorida: ", zona_adolorida), "")
         )
-      )
+      ) |>
+      # IMPORTANT: filter by recovery inputs (not pain_score)
+      dplyr::filter(!is.na(recovery_score), !is.na(ac_ratio)) |>
+      dplyr::distinct(player, .keep_all = TRUE)
   })
   
   # ---------- Initialize + keep selectInput in sync (without resetting selection) ----------
@@ -269,11 +280,10 @@ server <- function(input, output, session) {
   
   # 1) ACWR x RECOVERY
   output$acwr_scatter <- renderPlotly({
-    df <- scatter_df()                 # must already include: player, ac_ratio, recovery_score,
-    # color_status, pain_flag, zona_adolorida, latest_date
+    df <- scatter_df()  # now has authoritative pain_flag + zona_adolorida
     req(nrow(df) > 0)
     
-    df <- df %>%
+    df <- df |>
       dplyr::mutate(
         pain_flag     = tidyr::replace_na(pain_flag, FALSE),
         selected_flag = player == selected(),
@@ -292,24 +302,18 @@ server <- function(input, output, session) {
         )
       )
     
-    # one red ring per flagged player (prevents multiple outlines)
-    rings_df <- df %>%
-      dplyr::filter(pain_flag) %>%
+    rings_df <- df |>
+      dplyr::filter(pain_flag == TRUE) |>
       dplyr::distinct(player, .keep_all = TRUE)
-    # If you want one ring per unique coordinate instead, use:
-    # dplyr::distinct(player, recovery_score, ac_ratio, .keep_all = TRUE)
     
     p <- ggplot(df, aes(x = recovery_score, y = ac_ratio)) +
       geom_hline(yintercept = c(0.8, 1.3), linetype = "dashed", color = "gray50") +
-      # base points (shape 21 to allow fill mapped to color_status)
       geom_point(aes(fill = color_status, text = hover_text, customdata = player),
                  shape = 21, size = 6, alpha = 0.35, color = "black") +
-      # red pain rings (deduped)
       geom_point(data = rings_df,
                  aes(x = recovery_score, y = ac_ratio),
                  inherit.aes = FALSE,
                  shape = 21, size = 10, stroke = 1.2, fill = NA, color = "#d62728") +
-      # selected highlight on top
       geom_point(data = dplyr::filter(df, selected_flag),
                  aes(fill = color_status, text = hover_text, customdata = player),
                  shape = 21, size = 8, stroke = 1.2, color = "black") +
@@ -325,7 +329,7 @@ server <- function(input, output, session) {
         panel.grid.major.y = element_blank()
       )
     
-    ggplotly(p, tooltip = "text", source = "acwr_scatter") %>%
+    ggplotly(p, tooltip = "text", source = "acwr_scatter") |>
       layout(
         margin = list(b = 70),
         annotations = list(
@@ -344,7 +348,7 @@ server <- function(input, output, session) {
     req(exists("rest_scatter_df", inherits = TRUE))
     req(selected())
     
-    df <- get("rest_scatter_df", inherits = TRUE) %>%
+    df <- get("rest_scatter_df", inherits = TRUE) |>
       dplyr::mutate(
         selected_flag = player == selected(),
         hover_text = paste0(
@@ -382,7 +386,7 @@ server <- function(input, output, session) {
     req(exists("pain_scatter_df", inherits = TRUE))
     req(selected())
     
-    df <- get("pain_scatter_df", inherits = TRUE) %>%
+    df <- get("pain_scatter_df", inherits = TRUE) |>
       dplyr::mutate(
         pain_flag     = tidyr::replace_na(pain_flag, FALSE),
         selected_flag = player == selected(),
@@ -398,8 +402,8 @@ server <- function(input, output, session) {
       )
     
     # one red ring per flagged player (prevents duplicate outlines)
-    rings_df <- df %>%
-      dplyr::filter(pain_flag) %>%
+    rings_df <- df |>
+      dplyr::filter(pain_flag) |>
       dplyr::distinct(player, .keep_all = TRUE)
     # If you prefer one ring per unique coordinate:
     # dplyr::distinct(player, pain_score, ac_ratio, .keep_all = TRUE)
@@ -469,7 +473,7 @@ server <- function(input, output, session) {
   
   output$player_info_box <- renderUI({
     req(selected())
-    player_row <- player_info %>% filter(player == selected())
+    player_row <- player_info |> filter(player == selected())
     if (nrow(player_row) == 0) return(NULL)
     tags$div(style = "text-align:center;",
              tags$img(

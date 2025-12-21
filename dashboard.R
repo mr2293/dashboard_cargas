@@ -619,6 +619,168 @@ jugs = c("Néstor Araujo", "Brian Rodríguez", "Sebastián Cáceres", "Alan Cerv
          "Dagoberto Espinoza", "Víctor Dávila", "Igor Lichnovsky", "Santiago Naveda", "Ralph Orquin",
          "Alexis Gutiérrez", "Isaías Violante", "José Raúl Zúñiga", "Allan Saint-Maximin")
 
+ACWR_MISSING_Y <- 0.65
+
+# =========================
+#   1. ACWR x RPE -----------
+# =========================
+
+# 1) Load RPE XLSX
+path_rpe <- "data/rpe_primera.xlsx"
+rpe_raw <- read_excel(path_rpe)
+
+rpe_df <- rpe_raw |>
+  rename(
+    fecha_rpe = `Marca temporal`,
+    player    = `Nombre del Jugador`,
+    rpe_txt   = `RPE de la sesión`
+  ) |>
+  mutate(
+    # FORCE types (fixes your error)
+    player  = as.character(player),
+    rpe_txt = as.character(rpe_txt),
+    date    = as.Date(fecha_rpe),
+    
+    # clean whitespace/case a bit (optional but helps matching)
+    player  = str_squish(player),
+    
+    # same recodes as micros_shiny_comb
+    player = case_when(
+      player == "Cristian Yonathan Calderón del Real" ~ "Cristian Calderón",
+      player == "kevin alvarez" ~ "Kevin Álvarez",
+      player == "Erick Sanchez" ~ "Erick Sánchez",
+      player == "Brian Rodriguez" ~ "Brian Rodríguez",
+      player == "Victor Davila" ~ "Víctor Dávila",
+      player == "Miguel Ramirez" ~ "Miguel Ramírez",
+      player == "Miguel  Vazquez" ~ "Miguel Vázquez",
+      player == "Nestor Araujo" ~ "Néstor Araujo",
+      player == "Fidalgo Fidalgo" ~ "Álvaro Fidalgo",
+      player == "Jona Dos Santos" ~ "Jonathan Dos Santos",
+      player == "Luis Ángel Malagón Velázquez" ~ "Luis Ángel Malagón",
+      player == "Alexis Gutierrez" ~ "Alexis Gutiérrez",
+      player == "Sebastian Cáceres" ~ "Sebastián Cáceres",
+      player == "Isaias Violante" ~ "Isaías Violante",
+      player == "Jose Zuniga" ~ "José Raúl Zúñiga",
+      player == "Allan Maximin" ~ "Allan Saint-Maximin",
+      TRUE ~ player
+    ),
+    
+    # RPE -> numeric
+    rpe_val = case_when(
+      str_detect(rpe_txt, "^1") ~ 1,
+      str_detect(rpe_txt, "^2") ~ 2,
+      str_detect(rpe_txt, "^3") ~ 3,
+      str_detect(rpe_txt, "^4") ~ 4,
+      str_detect(rpe_txt, "^5") ~ 5,
+      str_detect(rpe_txt, "^6") ~ 6,
+      str_detect(rpe_txt, "^7") ~ 7,
+      str_detect(rpe_txt, "^8") ~ 8,
+      str_detect(rpe_txt, "^9") ~ 9,
+      TRUE ~ suppressWarnings(as.numeric(rpe_txt))
+    )
+  ) |>
+  filter(!is.na(player), !is.na(date), !is.na(rpe_val)) |>
+  filter(rpe_val >= 1, rpe_val <= 10)
+
+# 3) Ensure dates in micros_individual
+micros_individual <- micros_individual |>
+  mutate(date = as.Date(date))
+
+# 4) Latest ACWR per player
+latest_acwr_rpe <- micros_individual |>
+  group_by(player) |>
+  filter(date == max(date, na.rm = TRUE)) |>
+  ungroup() |>
+  select(player, ac_ratio, acwr_date = date)
+
+# 5) Latest RPE per player (1 row per player, no ties)
+latest_rpe <- rpe_df |>
+  arrange(player, date) |>
+  group_by(player) |>
+  slice_max(order_by = date, n = 1, with_ties = FALSE) |>
+  ungroup() |>
+  transmute(
+    player,
+    rpe_val,
+    rpe_date = date
+  )
+
+# 6) Join + statuses/colors (GK-safe: keep players without ACWR)
+scatter_df_rpe <- latest_rpe |>
+  # LEFT JOIN so GKs stay even if ac_ratio is NA
+  left_join(latest_acwr_rpe, by = "player") |>
+  mutate(
+    # y position for plotting
+    y_plot = if_else(is.na(ac_ratio), ACWR_MISSING_Y, ac_ratio),
+    
+    load_status = case_when(
+      is.na(ac_ratio) ~ "Sin WIMU (sin ACWR)",
+      ac_ratio < 0.8 ~ "Carga Baja",
+      ac_ratio > 1.3 ~ "Carga Alta",
+      TRUE ~ "Carga Óptima"
+    ),
+    
+    rpe_status = case_when(
+      rpe_val <= 4 ~ "RPE Bajo",
+      rpe_val <= 6 ~ "RPE Medio",
+      TRUE ~ "RPE Alto"
+    ),
+    
+    # Color logic:
+    # - If NO ACWR: color by RPE only
+    # - Else: your combined logic
+    color_status_rpe = case_when(
+      is.na(ac_ratio) & rpe_val <= 4 ~ "green",
+      is.na(ac_ratio) & rpe_val >= 7 ~ "red",
+      is.na(ac_ratio) ~ "yellow",
+      
+      ac_ratio >= 0.8 & ac_ratio <= 1.3 & rpe_val <= 4 ~ "green",
+      rpe_val >= 7 & (ac_ratio < 0.8 | ac_ratio > 1.3) ~ "red",
+      TRUE ~ "yellow"
+    )
+  ) |>
+  filter(!is.na(rpe_val))
+
+# 7) Plot
+acwr_rpe_scatter_plot <- ggplot(
+  scatter_df_rpe,
+  aes(
+    x = rpe_val,
+    y = y_plot,
+    fill = color_status_rpe,
+    text = paste0(
+      "Jugador: ", player,
+      "<br>Fecha (RPE): ", rpe_date,
+      "<br>RPE: ", rpe_val, " (", rpe_status, ")",
+      "<br>Fecha (ACWR): ", acwr_date,
+      "<br>Índice de Carga (ACWR): ", round(ac_ratio, 2),
+      "<br>Estatus de Carga: ", load_status
+    ),
+    customdata = player
+  )
+) +
+  geom_hline(yintercept = c(0.8, 1.3), linetype = "dashed", color = "gray50") +
+  geom_point(shape = 21, size = 6, alpha = 0.9, color = "black", stroke = 0.7) +
+  scale_x_continuous(breaks = 1:10) +
+  scale_fill_manual(values = c(green = "#2ca02c", yellow = "#ffbf00", red = "#d62728")) +
+  labs(
+    x = "RPE de la sesión (1–10)",
+    y = "Índice de Carga (ACWR)",
+    title = "ACWR & RPE: Resumen del equipo (última respuesta)"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 20),
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank(),
+    panel.grid.major.y = element_blank()
+  )
+
+# Example:
+# acwr_rpe_scatter_plot
+# ggplotly(acwr_rpe_scatter_plot, tooltip = "text")
+
 # ACWR x Rest Score Plot --------
 
 recuperacion_df <- recuperacion_df |>
@@ -650,7 +812,7 @@ latest_dates <- recuperacion_df |>
   rename(player = Nombre)
 
 # =========================
-#   1) ACWR x REST SCORE --------
+#   2) ACWR x REST SCORE --------
 # =========================
 # Latest rest score per player
 latest_rest <- recuperacion_df |>
@@ -658,30 +820,42 @@ latest_rest <- recuperacion_df |>
   filter(date == max(date, na.rm = TRUE)) |>
   select(player = Nombre, rest_score)
 
-rest_scatter_df <- latest_acwr |>
-  inner_join(latest_rest,  by = "player") |>
+rest_scatter_df <- latest_rest |>
   inner_join(latest_dates, by = "player") |>
+  # LEFT JOIN so GKs stay
+  left_join(latest_acwr, by = "player") |>
   mutate(
+    y_plot = if_else(is.na(ac_ratio), ACWR_MISSING_Y, ac_ratio),
+    
     rest_status = if_else(rest_score >= 6, "Descansado", "Cansado"),
+    
     load_status = case_when(
+      is.na(ac_ratio) ~ "Sin WIMU (sin ACWR)",
       ac_ratio < 0.8 ~ "Carga Baja",
       ac_ratio > 1.3 ~ "Carga Alta",
       TRUE ~ "Carga Óptima"
     ),
+    
+    # Color logic:
+    # - If NO ACWR: color by rest only
+    # - Else: your combined logic
     color_status_rest = case_when(
+      is.na(ac_ratio) & rest_score >= 6 ~ "green",
+      is.na(ac_ratio) & rest_score < 6  ~ "red",
+      
       ac_ratio >= 0.8 & ac_ratio <= 1.3 & rest_score >= 6 ~ "green",
       (ac_ratio >= 0.8 & ac_ratio <= 1.3 & rest_score < 6) |
         (rest_score >= 6 & (ac_ratio < 0.8 | ac_ratio > 1.3)) ~ "yellow",
       TRUE ~ "red"
     )
   ) |>
-  filter(!is.na(rest_score), !is.na(ac_ratio))
+  filter(!is.na(rest_score))
 
 acwr_rest_scatter_plot <- ggplot(
   rest_scatter_df,
   aes(
     x = rest_score,
-    y = ac_ratio,
+    y = y_plot,
     fill = color_status_rest,
     text = paste0(
       "Jugador: ", player,
@@ -711,7 +885,7 @@ acwr_rest_scatter_plot <- ggplot(
         panel.grid.major.y = element_blank())
 
 # =========================
-#   2) ACWR x PAIN SCORE -----------
+#   3) ACWR x PAIN SCORE -----------
 # =========================
 # Latest pain score per player
 latest_pain2 <- recuperacion_df |>
@@ -735,32 +909,44 @@ latest_pain2 <- recuperacion_df |>
     pain_score = pain_score
   )
 
-pain_scatter_df <- latest_acwr |>
-  inner_join(latest_pain2 |> dplyr::rename(three_day_pain = pain_flag), by = "player") |>
-  inner_join(latest_dates, by = "player") |>
+pain_scatter_df <- latest_pain2 |>
+  # bring date (for tooltip) from latest_dates
+  left_join(latest_dates, by = "player") |>
+  # LEFT JOIN so GKs stay
+  left_join(latest_acwr, by = "player") |>
   mutate(
+    y_plot = if_else(is.na(ac_ratio), ACWR_MISSING_Y, ac_ratio),
+    
     pain_status = if_else(pain_score < 6, "Sin dolor", "Con dolor"),
+    
     load_status = case_when(
+      is.na(ac_ratio) ~ "Sin WIMU (sin ACWR)",
       ac_ratio < 0.8 ~ "Carga Baja",
       ac_ratio > 1.3 ~ "Carga Alta",
       TRUE ~ "Carga Óptima"
     ),
+    
+    # Color logic:
+    # - If NO ACWR: color by pain only (match your meaning)
+    #   pain_score < 6 = green, else red
+    # - Else: your combined logic
     color_status_pain = case_when(
+      is.na(ac_ratio) & pain_score < 6 ~ "green",
+      is.na(ac_ratio) & pain_score >= 6 ~ "red",
+      
       ac_ratio >= 0.8 & ac_ratio <= 1.3 & pain_score < 6 ~ "green",
       (ac_ratio >= 0.8 & ac_ratio <= 1.3 & pain_score >= 6) |
         (pain_score < 6 & (ac_ratio < 0.8 | ac_ratio > 1.3)) ~ "yellow",
       TRUE ~ "red"
-    ),
-    pain_flag = three_day_pain
+    )
   ) |>
-  select(-three_day_pain) |>   # optional: drop helper column
-  filter(!is.na(pain_score), !is.na(ac_ratio))
+  filter(!is.na(pain_score))
 
 acwr_pain_scatter_plot <- ggplot(
   pain_scatter_df,
   aes(
     x = pain_score,
-    y = ac_ratio,
+    y = y_plot,
     fill = color_status_pain,
     text = paste0(
       "Jugador: ", player,
@@ -798,7 +984,7 @@ acwr_pain_scatter_plot <- ggplot(
         panel.grid.major.y = element_blank()
 )
 
-# Scatter de ACWR & Recuperación -------
+# 4. Scatter de ACWR & Recuperación -------
 
 # Asegurarse que las fechas están en formato Date
 recuperacion_df <- recuperacion_df |>
@@ -854,28 +1040,39 @@ latest_dates <- recuperacion_df |>
   dplyr::rename(player = Nombre)
 
 # Data frame para el scatter de Recuperación x ACWR
-scatter_df <- latest_acwr |>
-  dplyr::inner_join(latest_recovery, by = "player") |>
-  dplyr::inner_join(latest_dates,   by = "player") |>
-  # Traer únicamente la bandera de dolor de 3 días desde la fuente autorizada
-  dplyr::left_join(rings_auth, by = "player") |>
-  dplyr::mutate(
+scatter_df <- latest_recovery |>
+  inner_join(latest_dates, by = "player") |>
+  # LEFT JOIN so GKs stay even if ACWR missing
+  left_join(latest_acwr, by = "player") |>
+  left_join(rings_auth, by = "player") |>
+  mutate(
     pain_flag = tidyr::replace_na(pain_flag, FALSE),
+    
+    y_plot = if_else(is.na(ac_ratio), ACWR_MISSING_Y, ac_ratio),
+    
     recovery_status = dplyr::if_else(recovery_score >= 6, "Recuperado", "Fatigado"),
+    
     load_status = dplyr::case_when(
+      is.na(ac_ratio) ~ "Sin WIMU (sin ACWR)",
       ac_ratio < 0.8 ~ "Carga Baja",
       ac_ratio > 1.3 ~ "Carga Alta",
       TRUE ~ "Carga Óptima"
     ),
+    
+    # Color logic:
+    # - If NO ACWR: color by recovery only
+    # - Else: your combined logic
     color_status = dplyr::case_when(
+      is.na(ac_ratio) & recovery_score >= 6 ~ "green",
+      is.na(ac_ratio) & recovery_score < 6  ~ "red",
+      
       ac_ratio >= 0.8 & ac_ratio <= 1.3 & recovery_score >= 6 ~ "green",
       (ac_ratio >= 0.8 & ac_ratio <= 1.3 & recovery_score < 6) |
         (recovery_score >= 6 & (ac_ratio < 0.8 | ac_ratio > 1.3)) ~ "yellow",
       TRUE ~ "red"
     )
   ) |>
-  # IMPORTANTE: filtrar con variables de recuperación, no de dolor
-  dplyr::filter(!is.na(recovery_score), !is.na(ac_ratio)) |>
+  dplyr::filter(!is.na(recovery_score)) |>
   dplyr::distinct(player, .keep_all = TRUE)
 
 # Un anillo rojo por jugadora con bandera TRUE
@@ -887,7 +1084,7 @@ acwr_scatter_plot <- ggplot(
   scatter_df,
   aes(
     x = recovery_score,
-    y = ac_ratio,
+    y = y_plot,
     fill = color_status,
     text = paste0(
       "Jugador: ", player,

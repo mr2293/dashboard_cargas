@@ -244,6 +244,7 @@ plot_player_recuperacion("Álvaro Fidalgo")
 micros_shiny_comb <- read_csv("micros/micros_shiny_comb.csv") |>
   mutate(player = case_when(
     player == "Cristian Yonathan Calderón del Real" ~ "Cristian Calderón",
+    player == "Ralph Orquin" ~ "Ralph Orquín",
     player == "kevin alvarez" ~ "Kevin Álvarez",
     player == "Erick Sanchez" ~ "Erick Sánchez",
     player == "Brian Rodriguez" ~ "Brian Rodríguez",
@@ -308,7 +309,7 @@ selected_players <- c(
   "Isaías Violante","Alan Cervantes","Ramón Juárez","Erick Sánchez",
   "Brian Rodríguez","Kevin Álvarez","Dagoberto Espinoza","Víctor Dávila",
   "Rodrigo Aguirre","Cristian Borja","Alexis Gutiérrez","Néstor Araujo",
-  "Igor Lichnovsky","Sebastián Cáceres","Miguel Vázquez","Ralph Orquin",
+  "Igor Lichnovsky","Sebastián Cáceres","Miguel Vázquez","Ralph Orquín",
   "Jonathan Dos Santos","Santiago Naveda","José Raúl Zúñiga","Allan Saint-Maximin"
 )
 
@@ -616,7 +617,7 @@ jugs = c("Néstor Araujo", "Brian Rodríguez", "Sebastián Cáceres", "Alan Cerv
          "Rodolfo Cota", "Erick Sánchez", "Álvaro Fidalgo", "Henry Martín", "Israel Reyes",
          "Jonathan Dos Santos", "Kevin Álvarez", "Luis Ángel Malagón", "Miguel Vázquez", 
          "Ramón Juárez", "Alejandro Zendejas", "Rodrigo Aguirre", "Cristian Borja", 
-         "Dagoberto Espinoza", "Víctor Dávila", "Igor Lichnovsky", "Santiago Naveda", "Ralph Orquin",
+         "Dagoberto Espinoza", "Víctor Dávila", "Igor Lichnovsky", "Santiago Naveda", "Ralph Orquín",
          "Alexis Gutiérrez", "Isaías Violante", "José Raúl Zúñiga", "Allan Saint-Maximin")
 
 ACWR_MISSING_Y <- 0.65
@@ -631,9 +632,9 @@ rpe_raw <- read_excel(path_rpe)
 
 rpe_df <- rpe_raw |>
   rename(
-    fecha_rpe = `Column 1`,
-    player    = `Column 3`,
-    rpe_txt   = `Column 5`
+    fecha_rpe = `Marca temporal`,
+    player    = `Nombre del Jugador`,
+    rpe_txt   = `Valor`
   ) |>
   mutate(
     # FORCE types (fixes your error)
@@ -647,6 +648,7 @@ rpe_df <- rpe_raw |>
     # same recodes as micros_shiny_comb
     player = case_when(
       player == "Cristian Yonathan Calderón del Real" ~ "Cristian Calderón",
+      player == "Ralph Orquin" ~ "Ralph Orquín",
       player == "kevin alvarez" ~ "Kevin Álvarez",
       player == "Erick Sanchez" ~ "Erick Sánchez",
       player == "Brian Rodriguez" ~ "Brian Rodríguez",
@@ -816,7 +818,8 @@ latest_dates <- recuperacion_df |>
 # =========================
 # Latest rest score per player
 latest_rest <- recuperacion_df |>
-  group_by(Nombre) |>
+  group_by(Nombre) |> 
+  filter(Nombre %in% jugs) |>
   filter(date == max(date, na.rm = TRUE)) |>
   select(player = Nombre, rest_score)
 

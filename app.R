@@ -33,7 +33,7 @@ player_info <- tibble::tibble(
              "Rodolfo Cota", "Erick Sánchez", "Álvaro Fidalgo", "Henry Martín", "Israel Reyes",
              "Jonathan Dos Santos", "Kevin Álvarez", "Luis Ángel Malagón", "Miguel Vázquez",
              "Ramón Juárez", "Alejandro Zendejas", "Rodrigo Aguirre", "Cristian Borja",
-             "Dagoberto Espinoza", "Víctor Dávila", "Igor Lichnovsky", "Santiago Naveda", "Ralph Orquin",
+             "Dagoberto Espinoza", "Víctor Dávila", "Igor Lichnovsky", "Santiago Naveda", "Ralph Orquín",
              "Alexis Gutiérrez", "Isaías Violante", "José Raúl Zúñiga", "Allan Saint-Maximin"),
   image = c("araujo.png", "brian.png", "caceres.png", "cervantes.png", "cota.png",
             "erick_sanchez.png", "fidalgo.png", "henry.png", "israel_reyes.png",

@@ -46,6 +46,17 @@ jobs:
       # 3) Ensure data folder exists
       - name: Ensure data folder exists
         run: mkdir -p data
+        
+      - name: Debug presence of RPE vars
+        run: |
+          echo "SHEET_ID=${SHEET_ID:+set}"
+          echo "RPE_SHEET_ID=${RPE_SHEET_ID:+set}"
+          echo "SHEET_ID_RPE=${SHEET_ID_RPE:+set}"
+          [ -z "${RPE_SHEET_ID}${SHEET_ID_RPE}" ] && echo "RPE ID NOT set" && exit 1 || echo "RPE ID present"
+        env:
+          SHEET_ID:       ${{ secrets.GOOGLE_SHEET_ID }}
+          RPE_SHEET_ID:   ${{ secrets.RPE_SHEET_ID }}   # map repo secret to the expected env
+          SHEET_ID_RPE:   ${{ secrets.SHEET_ID_RPE }}   # optional fallback if you ever used this name
 
       # 4) Download BOTH Google Sheets as XLSX
       #    download_gsheet.py should read these env vars and write:

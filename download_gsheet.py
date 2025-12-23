@@ -16,6 +16,24 @@ def download_sheet(sheet_id: str, out_path: str, gid: str | None = None) -> None
     with open(out_path, "wb") as f:
         f.write(r.content)
     print(f"Downloaded: {out_path}")
+    
+def get_any(*names: str) -> str:
+    for n in names:
+        v = os.getenv(n)
+        if v:
+            return v
+    raise ValueError(f"Missing environment variable (tried): {', '.join(names)}")
+
+    # ---- Sheet 2 (RPE) ----
+    RPE_ID  = get_any("RPE_SHEET_ID", "SHEET_ID_RPE")
+    RPE_GID = os.getenv("RPE_SHEET_GID", os.getenv("SHEET_GID_RPE", "1991973790"))
+    OUT2    = os.getenv("OUTPUT_NAME_RPE", "rpe_primera.xlsx")
+
+    download_sheet(
+      sheet_id=RPE_ID,
+      gid=RPE_GID,
+      out_path=os.path.join(output_dir, OUT2),
+    )
 
 def main():
     # Where to save files (default: data/)

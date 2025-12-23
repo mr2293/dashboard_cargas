@@ -2,8 +2,11 @@ name: Update Google Sheet & Deploy Shiny App
 
 on:
   schedule:
-    # GitHub Actions uses UTC. 09:45 America/Mexico_City (UTC-6) ≈ 15:45 UTC.
+    # GitHub Actions uses UTC.
+    # 09:45 America/Mexico_City (~UTC-6) ≈ 15:45 UTC
     - cron: '45 15 * * *'
+    # 20:00 America/Mexico_City ≈ 02:00 UTC next day
+    - cron: '0 2 * * *'
   workflow_dispatch:
 
 permissions:
@@ -14,18 +17,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # ---------------------------
       # 1) Checkout repository (full history)
-      # ---------------------------
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           persist-credentials: true
 
-      # ---------------------------
-      # 1.5) Start from a clean origin/main (avoid local-change pull conflicts)
-      # ---------------------------
+      # 1.5) Start from a clean origin/main
       - name: Sync to origin/main
         run: |
           set -e
@@ -33,9 +32,7 @@ jobs:
           git checkout -B main origin/main
           git reset --hard origin/main
 
-      # ---------------------------
-      # 2) Set up Python for Google Sheet download
-      # ---------------------------
+      # 2) Python for Google Sheet download
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -46,25 +43,23 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests
 
-      # ---------------------------
       # 3) Ensure data folder exists
-      # ---------------------------
       - name: Ensure data folder exists
         run: mkdir -p data
 
-      # ---------------------------
-      # 4) Download Google Sheet as XLSX
-      # ---------------------------
-      - name: Download Google Sheet
+      # 4) Download BOTH Google Sheets as XLSX
+      #    download_gsheet.py should read these env vars and write:
+      #    - data/bienestar_jugador_primer_equipo_respuestas.xlsx
+      #    - data/rpe_primera.xlsx
+      - name: Download Google Sheets
         env:
-          SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+          SHEET_ID:        ${{ secrets.GOOGLE_SHEET_ID }}   # wellness workbook id
+          SHEET_ID_RPE:    ${{ secrets.SHEET_ID_RPE }}      # rpe workbook id
+          SHEET_GID_RPE:   "1991973790"                     # RPE tab gid (if your script uses it)
         run: python download_gsheet.py
 
-      # ---------------------------
-      # 5) Commit & push Excel if it changed
-      #    (force-add in case .gitignore ignores *.xlsx)
-      # ---------------------------
-      - name: Commit and push updated sheet (if changed)
+      # 5) Commit & push Excels if changed (force-add in case ignored)
+      - name: Commit and push updated sheets (if changed)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -72,26 +67,22 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          # Stage ONLY the Excel (force-add in case it's ignored)
-          git add -f data/bienestar_jugador_primer_equipo_respuestas.xlsx
+          git add -f \
+            data/bienestar_jugador_primer_equipo_respuestas.xlsx \
+            data/rpe_primera.xlsx
 
-          # Commit only if staged changes exist
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "chore: update wellness survey Excel [skip ci]"
+            git commit -m "chore: update wellness & RPE Excels [skip ci]"
             git push origin main
           fi
 
-      # ---------------------------
       # 6) Build Docker container
-      # ---------------------------
       - name: Build Docker image
         run: docker build --pull -t dashboard_cargas .
 
-      # ---------------------------
       # 7) Deploy Shiny app inside Docker
-      # ---------------------------
       - name: Deploy to shinyapps.io
         env:
           SHINY_ACC_NAME: ${{ secrets.SHINY_ACC_NAME }}
@@ -103,7 +94,6 @@ jobs:
             -e TOKEN="${TOKEN}" \
             -e SECRET="${SECRET}" \
             dashboard_cargas
-
 
 # name: Update Google Sheet & Deploy Shiny App
 # 

@@ -260,6 +260,7 @@ micros_shiny_comb <- read_csv("micros/micros_shiny_comb.csv") |>
     player == "Isaias Violante" ~ "Isaías Violante",
     player == "Jose Zuniga" ~ "José Raúl Zúñiga",
     player == "Allan Maximin" ~ "Allan Saint-Maximin",
+    player == "Patricio Salas" ~ "Patricio Salas",
     TRUE ~ player
   ),
   date = as.Date(date))
@@ -310,7 +311,8 @@ selected_players <- c(
   "Brian Rodríguez","Kevin Álvarez","Dagoberto Espinoza","Víctor Dávila",
   "Rodrigo Aguirre","Cristian Borja","Alexis Gutiérrez","Néstor Araujo",
   "Igor Lichnovsky","Sebastián Cáceres","Miguel Vázquez","Ralph Orquín",
-  "Jonathan Dos Santos","Santiago Naveda","José Raúl Zúñiga","Allan Saint-Maximin"
+  "Jonathan Dos Santos","Santiago Naveda","José Raúl Zúñiga","Allan Saint-Maximin",
+  "Patricio Salas"
 )
 
 # --- Build acute/chronic/ACWR and join MD info ---
@@ -618,7 +620,8 @@ jugs = c("Néstor Araujo", "Brian Rodríguez", "Sebastián Cáceres", "Alan Cerv
          "Jonathan Dos Santos", "Kevin Álvarez", "Luis Ángel Malagón", "Miguel Vázquez", 
          "Ramón Juárez", "Alejandro Zendejas", "Rodrigo Aguirre", "Cristian Borja", 
          "Dagoberto Espinoza", "Víctor Dávila", "Igor Lichnovsky", "Santiago Naveda", "Ralph Orquín",
-         "Alexis Gutiérrez", "Isaías Violante", "José Raúl Zúñiga", "Allan Saint-Maximin")
+         "Alexis Gutiérrez", "Isaías Violante", "José Raúl Zúñiga", "Allan Saint-Maximin",
+         "Patricio Salas")
 
 ACWR_MISSING_Y <- 0.65
 
@@ -664,6 +667,7 @@ rpe_df <- rpe_raw |>
       player == "Isaias Violante" ~ "Isaías Violante",
       player == "Jose Zuniga" ~ "José Raúl Zúñiga",
       player == "Allan Maximin" ~ "Allan Saint-Maximin",
+      player == "Patricio Salas" ~ "Patricio Salas",
       TRUE ~ player
     ),
     

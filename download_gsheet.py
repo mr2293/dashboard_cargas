@@ -23,7 +23,7 @@ def main():
 
     # ---- Sheet 1 (Cuestionario Bienestar) ----
     SHEET_ID = must_get("SHEET_ID")                # workbook id
-    # SHEET_GID = os.getenv("SHEET_GID")             # optional tab gid
+    SHEET_GID = os.getenv("SHEET_GID", "87000818")             # optional tab gid
     OUT_NAME_1 = os.getenv(                       # customize filename if you like
         "OUTPUT_NAME_SHEET",
         "bienestar_jugador_primer_equipo_respuestas.xlsx",

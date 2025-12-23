@@ -631,9 +631,9 @@ rpe_raw <- read_excel(path_rpe)
 
 rpe_df <- rpe_raw |>
   rename(
-    fecha_rpe = `Marca temporal`,
-    player    = `Nombre del Jugador`,
-    rpe_txt   = `RPE de la sesión`
+    fecha_rpe = `Column 1`,
+    player    = `Column 3`,
+    rpe_txt   = `Column 5`
   ) |>
   mutate(
     # FORCE types (fixes your error)

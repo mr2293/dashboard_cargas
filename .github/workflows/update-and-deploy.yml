@@ -2,11 +2,8 @@ name: Update Google Sheet & Deploy Shiny App
 
 on:
   schedule:
-    # GitHub Actions uses UTC.
-    # 09:45 America/Mexico_City (~UTC-6) ≈ 15:45 UTC
+    # GitHub Actions uses UTC. 09:45 America/Mexico_City (UTC-6) ≈ 15:45 UTC.
     - cron: '45 15 * * *'
-    # 20:00 America/Mexico_City ≈ 02:00 UTC next day
-    - cron: '0 2 * * *'
   workflow_dispatch:
 
 permissions:
@@ -17,14 +14,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # ---------------------------
       # 1) Checkout repository (full history)
+      # ---------------------------
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           persist-credentials: true
 
-      # 1.5) Start from a clean origin/main
+      # ---------------------------
+      # 1.5) Start from a clean origin/main (avoid local-change pull conflicts)
+      # ---------------------------
       - name: Sync to origin/main
         run: |
           set -e
@@ -32,7 +33,9 @@ jobs:
           git checkout -B main origin/main
           git reset --hard origin/main
 
-      # 2) Python for Google Sheet download
+      # ---------------------------
+      # 2) Set up Python for Google Sheet download
+      # ---------------------------
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -43,68 +46,64 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests
 
+      # ---------------------------
       # 3) Ensure data folder exists
+      # ---------------------------
       - name: Ensure data folder exists
         run: mkdir -p data
-        
-      - name: Debug presence of RPE vars
-        run: |
-          echo "SHEET_ID=${SHEET_ID:+set}"
-          echo "RPE_SHEET_ID=${RPE_SHEET_ID:+set}"
-          echo "SHEET_ID_RPE=${SHEET_ID_RPE:+set}"
-          [ -z "${RPE_SHEET_ID}${SHEET_ID_RPE}" ] && echo "RPE ID NOT set" && exit 1 || echo "RPE ID present"
-        env:
-          SHEET_ID:       ${{ secrets.GOOGLE_SHEET_ID }}
-          RPE_SHEET_ID:   ${{ secrets.RPE_SHEET_ID }}   # map repo secret to the expected env
-          SHEET_ID_RPE:   ${{ secrets.SHEET_ID_RPE }}   # optional fallback if you ever used this name
 
-      # 4) Download BOTH Google Sheets as XLSX
-      #    download_gsheet.py should read these env vars and write:
-      #    - data/bienestar_jugador_primer_equipo_respuestas.xlsx
-      #    - data/rpe_primera.xlsx
-      - name: Download Google Sheets
+      # ---------------------------
+      # 4) Download Cuestionario Bienestar Google Sheet as XLSX
+      # ---------------------------
+      - name: Download Google Sheet
         env:
-          SHEET_ID:        ${{ secrets.GOOGLE_SHEET_ID }}   # wellness workbook id
-          RPE_SHEET_ID:    ${{ secrets.RPE_SHEET_ID }}      # <-- add this
-          RPE_SHEET_GID:   "1991973790"                     # RPE tab gid (if your script uses it)
+          SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
         run: python download_gsheet.py
 
-      # 5) Commit & push Excels if changed (force-add in case ignored)
-      - name: Commit and push updated sheets (if changed)
+      # ---------------------------
+      # 5) Commit & push Excel if it changed
+      #    (force-add in case .gitignore ignores *.xlsx)
+      # ---------------------------
+      - name: Commit and push updated sheet (if changed)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -e
-          git config user.name  "github-actions[bot]"
+          git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add -f \
-            data/bienestar_jugador_primer_equipo_respuestas.xlsx \
-            data/rpe_primera.xlsx
+          # Stage ONLY the Excel (force-add in case it's ignored)
+          git add -f data/bienestar_jugador_primer_equipo_respuestas.xlsx
 
+          # Commit only if staged changes exist
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "chore: update wellness & RPE Excels [skip ci]"
+            git commit -m "chore: update wellness survey Excel [skip ci]"
             git push origin main
           fi
 
+      # ---------------------------
       # 6) Build Docker container
+      # ---------------------------
       - name: Build Docker image
         run: docker build --pull -t dashboard_cargas .
 
+      # ---------------------------
       # 7) Deploy Shiny app inside Docker
+      # ---------------------------
       - name: Deploy to shinyapps.io
         env:
           SHINY_ACC_NAME: ${{ secrets.SHINY_ACC_NAME }}
-          TOKEN:          ${{ secrets.TOKEN }}
-          SECRET:         ${{ secrets.SECRET }}
+          TOKEN: ${{ secrets.TOKEN }}
+          SECRET: ${{ secrets.SECRET }}
         run: |
           docker run --rm \
             -e SHINY_ACC_NAME="${SHINY_ACC_NAME}" \
             -e TOKEN="${TOKEN}" \
             -e SECRET="${SECRET}" \
             dashboard_cargas
+
 
 # name: Update Google Sheet & Deploy Shiny App
 # 

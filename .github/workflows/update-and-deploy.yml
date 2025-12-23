@@ -54,8 +54,8 @@ jobs:
       - name: Download Google Sheets
         env:
           SHEET_ID:        ${{ secrets.GOOGLE_SHEET_ID }}   # wellness workbook id
-          SHEET_ID_RPE:    ${{ secrets.SHEET_ID_RPE }}      # rpe workbook id
-          SHEET_GID_RPE:   "1991973790"                     # RPE tab gid (if your script uses it)
+          RPE_SHEET_ID:    ${{ secrets.RPE_SHEET_ID }}      # <-- add this
+          RPE_SHEET_GID:   "1991973790"                     # RPE tab gid (if your script uses it)
         run: python download_gsheet.py
 
       # 5) Commit & push Excels if changed (force-add in case ignored)

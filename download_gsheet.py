@@ -36,13 +36,13 @@ def main():
     )
 
     # ---- Sheet 2 (RPE) ----
-    SHEET_ID_RPE = must_get("SHEET_ID_RPE")        # workbook id
-    SHEET_GID_RPE = os.getenv("SHEET_GID_RPE", "1991973790")  # tab gid (from your URL)
+    RPE_SHEET_ID = must_get("RPE_SHEET_ID")        # workbook id
+    RPE_SHEET_GID = os.getenv("RPE_SHEET_GID", "1991973790")  # tab gid (from your URL)
     OUT_NAME_2 = os.getenv("OUTPUT_NAME_RPE", "rpe_primera.xlsx")
 
     download_sheet(
-        sheet_id=SHEET_ID_RPE,
-        gid=SHEET_GID_RPE,
+        sheet_id=RPE_SHEET_ID,
+        gid=RPE_SHEET_GID,
         out_path=os.path.join(output_dir, OUT_NAME_2),
     )
 

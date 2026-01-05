@@ -34,20 +34,21 @@ player_info <- tibble::tibble(
              "Jonathan Dos Santos", "Kevin Álvarez", "Luis Ángel Malagón", "Miguel Vázquez",
              "Ramón Juárez", "Alejandro Zendejas", "Rodrigo Aguirre", "Cristian Borja",
              "Dagoberto Espinoza", "Víctor Dávila", "Igor Lichnovsky", "Santiago Naveda", "Ralph Orquín",
-             "Alexis Gutiérrez", "Isaías Violante", "José Raúl Zúñiga", "Allan Saint-Maximin", "Patricio Salas"),
+             "Alexis Gutiérrez", "Isaías Violante", "José Raúl Zúñiga", "Allan Saint-Maximin", "Patricio Salas",
+             "Rodrigo Dourado"),
   image = c("araujo.png", "brian.png", "caceres.png", "cervantes.png", "cota.png",
             "erick_sanchez.png", "fidalgo.png", "henry.png", "israel_reyes.png",
             "jonathan.png", "kevin.png", "malagon.png", "miguel_vazquez.png", "ramon.png",
             "zendejas.png", "aguirre.jpeg", "borja.jpeg", "dagoberto.jpg", "davila.jpg",
             "igor.avif", "naveda.jpeg", "ralph.jpeg", "alexis_gtz.jpg", "violante.png",
-            "zuniga.png", "maximin.png", "pato_salas.jpg"),
+            "zuniga.png", "maximin.png", "pato_salas.jpg", "dourado.png"),
   age = c(33, 25, 25, 27, 37, 25, 28, 32, 25, 35, 26, 28, 21, 24, 27, 30, 32, 21, 27, 31,
-          24, 22, 25, 21, 31, 28, 21),
+          24, 22, 25, 21, 31, 28, 21, 31),
   height = c("1.88 m", "1.75 m", "1.80 m", "1.81 m", "1.83 m", "1.67 m",
              "1.74 m", "1.77 m", "1.79 m", "1.72 m", "1.76 m",
              "1.82 m", "1.85 m", "1.82 m", "1.70 m", "1.83 m", "1.79 m", "1.80 m",
              "1.73 m", "1.86 m", "1.80 m", "1.77 m", "1.75 m", "1.73 m", "1.80 m",
-             "1.73 m", "1.85m")
+             "1.73 m", "1.85m", "1.86m")
 )
 
 ui <- fluidPage(

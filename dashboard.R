@@ -614,7 +614,7 @@ plot_individual_hsr <- function(player) {
 }
 
 # Example
-plot_individual_hsr("Álvaro Fidalgo")
+plot_individual_hsr("Rodrigo Dourado")
 
 jugs = c("Néstor Araujo", "Brian Rodríguez", "Sebastián Cáceres", "Alan Cervantes", 
          "Rodolfo Cota", "Erick Sánchez", "Álvaro Fidalgo", "Henry Martín", "Israel Reyes",

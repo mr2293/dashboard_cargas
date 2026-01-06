@@ -41,7 +41,7 @@ player_info <- tibble::tibble(
             "jonathan.png", "kevin.png", "malagon.png", "miguel_vazquez.png", "ramon.png",
             "zendejas.png", "aguirre.jpeg", "borja.jpeg", "dagoberto.jpg", "davila.jpg",
             "igor.avif", "naveda.jpeg", "ralph.jpeg", "alexis_gtz.jpg", "violante.png",
-            "zuniga.png", "maximin.png", "pato_salas.jpg", "dourado.png"),
+            "zuniga.png", "maximin.png", "pato_salas.jpg", "dourado.webp"),
   age = c(33, 25, 25, 27, 37, 25, 28, 32, 25, 35, 26, 28, 21, 24, 27, 30, 32, 21, 27, 31,
           24, 22, 25, 21, 31, 28, 21, 31),
   height = c("1.88 m", "1.75 m", "1.80 m", "1.81 m", "1.83 m", "1.67 m",

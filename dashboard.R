@@ -1086,7 +1086,7 @@ scatter_df <- latest_recovery |>
   dplyr::filter(!is.na(recovery_score)) |>
   dplyr::distinct(player, .keep_all = TRUE)
 
-# Un anillo rojo por jugadora con bandera TRUE
+# Un anillo rojo por jugador con bandera TRUE
 rings_df <- scatter_df |>
   dplyr::filter(pain_flag) |>
   dplyr::distinct(player, .keep_all = TRUE)

@@ -44,9 +44,11 @@ compute_recovery_score <- function(fatigue, sleep_quality, sleep_hours, soreness
   
   # Sleep duration
   score <- score + case_when(
-    sleep_hours == "Más de 8" ~ 2.5,
-    sleep_hours == "6 a 8" ~ 2,
-    sleep_hours == "Menos de 6" ~ 1,
+    sleep_hours == "9 o mas" ~ 2.5,
+    sleep_hours == "8" ~ 2,
+    sleep_hours == "7" ~ 1.5,
+    sleep_hours == "6" ~ 1,
+    sleep_hours == "5 o menos" ~ 0.5,
     TRUE ~ 0
   )
   
@@ -93,9 +95,11 @@ compute_rest_score <- function(fatigue, sleep_quality, sleep_hours) {
   
   # Sleep duration
   score <- score + case_when(
-    sleep_hours == "Más de 8" ~ 2.5,
-    sleep_hours == "6 a 8" ~ 2,
-    sleep_hours == "Menos de 6" ~ 1,
+    sleep_hours == "9 o mas" ~ 2.5,
+    sleep_hours == "8" ~ 2,
+    sleep_hours == "7" ~ 1.5,
+    sleep_hours == "6" ~ 1,
+    sleep_hours == "5 o menos" ~ 0.5,
     TRUE ~ 0
   )
   

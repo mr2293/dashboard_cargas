@@ -44,11 +44,11 @@ compute_recovery_score <- function(fatigue, sleep_quality, sleep_hours, soreness
   
   # Sleep duration
   score <- score + case_when(
-    sleep_hours == "9 o mas" ~ 2.5,
-    sleep_hours == "8" ~ 2,
-    sleep_hours == "7" ~ 1.5,
-    sleep_hours == "6" ~ 1,
-    sleep_hours == "5 o menos" ~ 0.5,
+    sleep_hours == "9 o mas"    ~ 2.5,
+    sleep_hours == "8.0"          ~ 2,
+    sleep_hours == "7.0"          ~ 1.5,
+    sleep_hours == "6.0"          ~ 1,
+    sleep_hours == "5 o menos"  ~ 0.5,
     TRUE ~ 0
   )
   
@@ -73,9 +73,9 @@ compute_rest_score <- function(fatigue, sleep_quality, sleep_hours) {
     fatigue == "Muy fresco" ~ 5,
     fatigue == "Fresco" ~ 4.5,
     fatigue == "Mejor que lo normal" ~ 3.5,
-    fatigue == "Normal" ~ 2.5,
-    fatigue == "Peor que lo normal" ~ 2,
-    fatigue == "Cansado" ~ 1.5,
+    fatigue == "Normal" ~ 3,
+    fatigue == "Peor que lo normal" ~ 2.5,
+    fatigue == "Cansado" ~ 2,
     fatigue == "Muy cansado" ~ 1,
     TRUE ~ 0
   )
@@ -95,11 +95,11 @@ compute_rest_score <- function(fatigue, sleep_quality, sleep_hours) {
   
   # Sleep duration
   score <- score + case_when(
-    sleep_hours == "9 o mas" ~ 2.5,
-    sleep_hours == "8" ~ 2,
-    sleep_hours == "7" ~ 1.5,
-    sleep_hours == "6" ~ 1,
-    sleep_hours == "5 o menos" ~ 0.5,
+    sleep_hours == "9 o mas"    ~ 2.5,
+    sleep_hours == "8.0"          ~ 2,
+    sleep_hours == "7.0"          ~ 1.5,
+    sleep_hours == "6.0"          ~ 1,
+    sleep_hours == "5 o menos"  ~ 0.5,
     TRUE ~ 0
   )
   
@@ -158,6 +158,10 @@ recuperacion_df <- recuperacion_df |>
     sueño_score = niveles_sueño[`Qué tal descansaste ayer?`],
     dolor_score = niveles_dolor[`Estás adolorido de alguna parte?`]
   )
+
+str(recuperacion_df[3043:3068, ])
+
+
 
 # Function to plot by player
 plot_player_recuperacion <- function(player_name) {

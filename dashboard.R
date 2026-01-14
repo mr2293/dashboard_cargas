@@ -646,7 +646,8 @@ rpe_raw <- read_excel(path_rpe)
 rpe_df <- rpe_raw |>
   rename(
     fecha_rpe = `Marca temporal`,
-    player    = `Nombre del Jugador`,
+    # player    = `Nombre del Jugador`,
+    player = `Columna 3`,
     rpe_txt   = `Valor`
   ) |>
   mutate(

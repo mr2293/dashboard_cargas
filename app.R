@@ -36,15 +36,18 @@ player_info <- tibble::tibble(
              "Dagoberto Espinoza", "Víctor Dávila", "Igor Lichnovsky", "Santiago Naveda", "Ralph Orquín",
              "Alexis Gutiérrez", "Isaías Violante", "José Raúl Zúñiga", "Allan Saint-Maximin", "Patricio Salas",
              "Rodrigo Dourado", "Aaron Mejía", "Fernando Tapia"),
-  image = c("araujo.jpg", "brian.jpg", "caceres.jpg", "cervantes.jpg", "cota.jpg",
+  image = c("nestor.jpg", "brian.jpg", "caceres.jpg", "cervantes.jpg", "cota.jpg",
             "erick_sanchez.jpg", "fidalgo.jpg", "henry.jpg", "israel_reyes.jpg",
             "jonathan.jpg", "kevin.jpg", "malagon.jpg", "miguel_vazquez.jpg", "ramon.jpg",
             "zendejas.jpg", "aguirre.jpg", "borja.jpg", "dagoberto.jpg", "davila.jpg",
             "igor.avif", "naveda.jpg", "ralph.jpg", "alexis_gtz.jpg", "violante.jpg",
             "zuniga.jpg", "maximin.jpg", "pato_salas.jpg", "dourado.webp", "mejia.jpg",
             "tapia.jpg"),
-  age = c(33, 25, 25, 27, 37, 25, 28, 32, 25, 35, 26, 28, 21, 24, 27, 30, 32, 21, 27, 31,
-          24, 22, 25, 21, 31, 28, 21, 31, 24, 24),
+  age = c("29/08/1991", "20/05/2000", "18/08/1999", "17/01/1998", "03/07/1987", "27/09/1999", "09/04/1997", 
+          "18/11/1992", "23/05/2000", "26/04/1990", "15/01/1999", "02/03/1997", "07/02/2004", "09/05/2001", 
+          "07/02/1998", "01/10/1994", "18/02/1993", "17/04/2004", "04/11/1997", "07/03/1994", "16/04/2001", 
+          "15/04/2003", "26/02/2000", "20/10/2003", "13/07/1994", "12/03/1997", "17/02/2004", "17/06/1994", 
+          "06/06/2001", "17/06/2001"),
   height = c("1.88 m", "1.75 m", "1.80 m", "1.81 m", "1.83 m", "1.67 m",
              "1.74 m", "1.77 m", "1.79 m", "1.72 m", "1.76 m",
              "1.82 m", "1.85 m", "1.82 m", "1.70 m", "1.83 m", "1.79 m", "1.80 m",
@@ -599,7 +602,7 @@ server <- function(input, output, session) {
                width = "100%", style = "max-width:200px; border-radius:10px; margin-bottom:10px;"
              ),
              tags$h4(player_row$player),
-             tags$p(paste("Edad:", player_row$age)),
+             tags$p(paste("Nacido el:", player_row$age)),
              tags$p(paste("Estatura:", player_row$height))
     )
   })

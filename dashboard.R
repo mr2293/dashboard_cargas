@@ -270,7 +270,7 @@ micros_shiny_comb <- read_csv("micros/micros_shiny_comb.csv") |>
     player == "Allan Maximin" ~ "Allan Saint-Maximin",
     player == "Patricio Salas" ~ "Patricio Salas",
     player == "Rodrigo Dourado" ~ "Rodrigo Dourado",
-    player == "Aaron Mejia" ~ "Aaron Mejía",
+    player == "Aaron Mejia" ~ "Aaron Mejia",
     TRUE ~ player
   ),
   date = as.Date(date))
@@ -322,7 +322,7 @@ selected_players <- c(
   "Rodrigo Aguirre","Cristian Borja","Alexis Gutiérrez","Néstor Araujo",
   "Igor Lichnovsky","Sebastián Cáceres","Miguel Vázquez","Ralph Orquín",
   "Jonathan Dos Santos","Santiago Naveda","José Raúl Zúñiga","Allan Saint-Maximin",
-  "Patricio Salas", "Rodrigo Dourado", "Aaron Mejía"
+  "Patricio Salas", "Rodrigo Dourado", "Aaron Mejia"
 )
 
 # --- Build acute/chronic/ACWR and join MD info ---
@@ -631,7 +631,7 @@ jugs = c("Néstor Araujo", "Brian Rodríguez", "Sebastián Cáceres", "Alan Cerv
          "Ramón Juárez", "Alejandro Zendejas", "Rodrigo Aguirre", "Cristian Borja", 
          "Dagoberto Espinoza", "Víctor Dávila", "Igor Lichnovsky", "Santiago Naveda", "Ralph Orquín",
          "Alexis Gutiérrez", "Isaías Violante", "José Raúl Zúñiga", "Allan Saint-Maximin",
-         "Patricio Salas", "Rodrigo Dourado", "Aaron Mejía")
+         "Patricio Salas", "Rodrigo Dourado", "Aaron Mejia")
 
 ACWR_MISSING_Y <- 0.65
 
@@ -680,7 +680,7 @@ rpe_df <- rpe_raw |>
       player == "Allan Maximin" ~ "Allan Saint-Maximin",
       player == "Patricio Salas" ~ "Patricio Salas",
       player == "Rodrigo Dourado" ~ "Rodrigo Dourado",
-      player == "Aaron Mejia" ~ "Aaron Mejía",
+      player == "Aaron Mejia" ~ "Aaron Mejia",
       TRUE ~ player
     ),
     
@@ -914,18 +914,27 @@ latest_pain2 <- recuperacion_df |>
   arrange(Nombre, date) |>
   group_by(Nombre) |>
   mutate(
+    soreness_resp  = `Estás adolorido de alguna parte?`,
     zona_adolorida = `Donde te encuentras adolorido? Indica cada zona de dolor`,
-    pain_day = !is.na(zona_adolorida) & zona_adolorida != "Nada",
-    three_day_pain = pain_day &
+    
+    # 1) define "pain day" using your two OR conditions
+    pain_day =
+      (soreness_resp %in% c("Adolorido de una zona", "Muy adolorido en general")) |
+      (!is.na(zona_adolorida) & zona_adolorida != "Nada"),
+    
+    # 2) 3-day streak based on the new pain_day
+    three_day_pain =
+      pain_day &
       lag(pain_day, 1, default = FALSE) &
       lag(pain_day, 2, default = FALSE)
   ) |>
-  # IMPORTANT: keep only ONE latest row per player (no ties)
+  # keep only ONE latest row per player
   slice_max(order_by = date, n = 1, with_ties = FALSE) |>
   transmute(
     player = Nombre,
+    soreness_resp,
     zona_adolorida,
-    pain_flag = three_day_pain,
+    pain_flag  = three_day_pain,
     pain_score = pain_score
   )
 
@@ -986,7 +995,7 @@ acwr_pain_scatter_plot <- ggplot(
   # anillo rojo para jugadores con dolor
   geom_point(
     data = dplyr::filter(pain_scatter_df, pain_flag),
-    aes(x = pain_score, y = ac_ratio),
+    aes(x = pain_score, y = y_plot),
     inherit.aes = FALSE,
     shape = 21, size = 9, stroke = 1.8, fill = NA, color = "#d62728"
   ) +
@@ -1033,7 +1042,7 @@ recuperacion_df <- recuperacion_df |>
 rings_auth <- latest_pain2 |>
   dplyr::filter(pain_flag) |>
   dplyr::distinct(player, .keep_all = TRUE) |>
-  dplyr::select(player, zona_adolorida, pain_flag)
+  dplyr::select(player, soreness_resp, zona_adolorida, pain_flag)
 
 # Asegurar fecha en micros
 micros_individual <- micros_individual |>
@@ -1122,7 +1131,7 @@ acwr_scatter_plot <- ggplot(
   # ring layer uses the deduped data
   geom_point(
     data = rings_df,
-    aes(x = recovery_score, y = ac_ratio),
+    aes(x = recovery_score, y = y_plot),
     inherit.aes = FALSE,
     shape = 21, size = 9, stroke = 1.8, fill = NA, color = "#d62728"
   ) +

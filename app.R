@@ -35,7 +35,7 @@ player_info <- tibble::tibble(
              "Ramón Juárez", "Alejandro Zendejas", "Rodrigo Aguirre", "Cristian Borja",
              "Dagoberto Espinoza", "Víctor Dávila", "Igor Lichnovsky", "Santiago Naveda", "Ralph Orquín",
              "Alexis Gutiérrez", "Isaías Violante", "José Raúl Zúñiga", "Allan Saint-Maximin", "Patricio Salas",
-             "Rodrigo Dourado", "Aaron Mejía", "Fernando Tapia"),
+             "Rodrigo Dourado", "Aaron Mejia", "Fernando Tapia"),
   image = c("nestor.jpg", "brian.jpg", "caceres.jpg", "cervantes.jpg", "cota.jpg",
             "erick_sanchez.jpg", "fidalgo.jpg", "henry.jpg", "israel_reyes.jpg",
             "jonathan.jpg", "kevin.jpg", "malagon.jpg", "miguel_vazquez.jpg", "ramon.jpg",

@@ -41,7 +41,7 @@ player_info <- tibble::tibble(
             "jonathan.jpg", "kevin.jpg", "malagon.jpg", "miguel_vazquez.jpg", "ramon.jpg",
             "zendejas.jpg", "aguirre.jpg", "borja.jpg", "dagoberto.jpg", "davila.jpg",
             "igor.avif", "naveda.jpg", "ralph.jpg", "alexis_gtz.jpg", "violante.jpg",
-            "zuniga.jpg", "maximin.jpg", "pato_salas.jpg", "dourado.webp", "mejia.jpg",
+            "zuniga.jpg", "maximin.jpg", "pato_salas.jpg", "dourado.jpg", "mejia.jpg",
             "tapia.jpg"),
   age = c("29/08/1991", "20/05/2000", "18/08/1999", "17/01/1998", "03/07/1987", "27/09/1999", "09/04/1997", 
           "18/11/1992", "23/05/2000", "26/04/1990", "15/01/1999", "02/03/1997", "07/02/2004", "09/05/2001", 

@@ -245,7 +245,7 @@ plot_player_recuperacion <- function(player_name) {
 }
 
 # Example usage:
-plot_player_recuperacion("Álvaro Fidalgo")
+plot_player_recuperacion("Henry Martín")
 
 ## Plot A:C 7:21 Individual -----------
 
@@ -260,17 +260,18 @@ micros_shiny_comb <- read_csv("micros/micros_shiny_comb.csv") |>
     player == "Miguel Ramirez" ~ "Miguel Ramírez",
     player == "Miguel  Vazquez" ~ "Miguel Vázquez",
     player == "Nestor Araujo" ~ "Néstor Araujo",
-    player == "Fidalgo Fidalgo" ~ "Álvaro Fidalgo",
+    # player == "Fidalgo Fidalgo" ~ "Álvaro Fidalgo",
     player == "Jona Dos Santos" ~ "Jonathan Dos Santos",
     player == "Luis Ángel Malagón Velázquez" ~ "Luis Ángel Malagón",
     player == "Alexis Gutierrez" ~ "Alexis Gutiérrez",
     player == "Sebastian Cáceres" ~ "Sebastián Cáceres",
     player == "Isaias Violante" ~ "Isaías Violante",
     player == "Jose Zuniga" ~ "José Raúl Zúñiga",
-    player == "Allan Maximin" ~ "Allan Saint-Maximin",
+    # player == "Allan Maximin" ~ "Allan Saint-Maximin",
     player == "Patricio Salas" ~ "Patricio Salas",
     player == "Rodrigo Dourado" ~ "Rodrigo Dourado",
     player == "Aaron Mejia" ~ "Aaron Mejia",
+    player == "Raphael Veiga" ~ "Raphael Veiga",
     TRUE ~ player
   ),
   date = as.Date(date))
@@ -316,13 +317,13 @@ process_ewma <- function(data, col) {
 
 # --- Players subset (as before) ---
 selected_players <- c(
-  "Álvaro Fidalgo","Israel Reyes","Henry Martín","Alejandro Zendejas",
+  "Israel Reyes","Henry Martín","Alejandro Zendejas",
   "Isaías Violante","Alan Cervantes","Ramón Juárez","Erick Sánchez",
   "Brian Rodríguez","Kevin Álvarez","Dagoberto Espinoza","Víctor Dávila",
   "Rodrigo Aguirre","Cristian Borja","Alexis Gutiérrez","Néstor Araujo",
   "Igor Lichnovsky","Sebastián Cáceres","Miguel Vázquez","Ralph Orquín",
-  "Jonathan Dos Santos","Santiago Naveda","José Raúl Zúñiga","Allan Saint-Maximin",
-  "Patricio Salas", "Rodrigo Dourado", "Aaron Mejia"
+  "Jonathan Dos Santos","Santiago Naveda","José Raúl Zúñiga",
+  "Patricio Salas", "Rodrigo Dourado", "Aaron Mejia", "Raphael Veiga"
 )
 
 # --- Build acute/chronic/ACWR and join MD info ---
@@ -486,7 +487,7 @@ plot_individual_ac <- function(player) {
 }
 
 # Example
-plot_individual_ac("Álvaro Fidalgo")
+plot_individual_ac("Henry Martín")
 
 # Plot Individual HSR -------
 
@@ -626,12 +627,12 @@ plot_individual_hsr <- function(player) {
 plot_individual_hsr("Rodrigo Dourado")
 
 jugs = c("Néstor Araujo", "Brian Rodríguez", "Sebastián Cáceres", "Alan Cervantes", 
-         "Rodolfo Cota", "Erick Sánchez", "Álvaro Fidalgo", "Henry Martín", "Israel Reyes",
+         "Rodolfo Cota", "Erick Sánchez", "Henry Martín", "Israel Reyes",
          "Jonathan Dos Santos", "Kevin Álvarez", "Luis Ángel Malagón", "Miguel Vázquez", 
          "Ramón Juárez", "Alejandro Zendejas", "Rodrigo Aguirre", "Cristian Borja", 
          "Dagoberto Espinoza", "Víctor Dávila", "Igor Lichnovsky", "Santiago Naveda", "Ralph Orquín",
-         "Alexis Gutiérrez", "Isaías Violante", "José Raúl Zúñiga", "Allan Saint-Maximin",
-         "Patricio Salas", "Rodrigo Dourado", "Aaron Mejia")
+         "Alexis Gutiérrez", "Isaías Violante", "José Raúl Zúñiga",
+         "Patricio Salas", "Rodrigo Dourado", "Aaron Mejia", "Raphael Veiga")
 
 ACWR_MISSING_Y <- 0.65
 
@@ -670,17 +671,18 @@ rpe_df <- rpe_raw |>
       player == "Miguel Ramirez" ~ "Miguel Ramírez",
       player == "Miguel  Vazquez" ~ "Miguel Vázquez",
       player == "Nestor Araujo" ~ "Néstor Araujo",
-      player == "Fidalgo Fidalgo" ~ "Álvaro Fidalgo",
+      # player == "Fidalgo Fidalgo" ~ "Álvaro Fidalgo",
       player == "Jona Dos Santos" ~ "Jonathan Dos Santos",
       player == "Luis Ángel Malagón Velázquez" ~ "Luis Ángel Malagón",
       player == "Alexis Gutierrez" ~ "Alexis Gutiérrez",
       player == "Sebastian Cáceres" ~ "Sebastián Cáceres",
       player == "Isaias Violante" ~ "Isaías Violante",
       player == "Jose Zuniga" ~ "José Raúl Zúñiga",
-      player == "Allan Maximin" ~ "Allan Saint-Maximin",
+      # player == "Allan Maximin" ~ "Allan Saint-Maximin",
       player == "Patricio Salas" ~ "Patricio Salas",
       player == "Rodrigo Dourado" ~ "Rodrigo Dourado",
       player == "Aaron Mejia" ~ "Aaron Mejia",
+      player == "Raphael Veiga" ~ "Raphael Veiga",
       TRUE ~ player
     ),
     

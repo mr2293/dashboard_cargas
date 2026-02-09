@@ -272,6 +272,7 @@ micros_shiny_comb <- read_csv("micros/micros_shiny_comb.csv") |>
     player == "Rodrigo Dourado" ~ "Rodrigo Dourado",
     player == "Aaron Mejia" ~ "Aaron Mejia",
     player == "Raphael Veiga" ~ "Raphael Veiga",
+    player == "Vinicius Lima" ~ "Vinícius Lima",
     TRUE ~ player
   ),
   date = as.Date(date))
@@ -321,9 +322,10 @@ selected_players <- c(
   "Isaías Violante","Alan Cervantes","Ramón Juárez","Erick Sánchez",
   "Brian Rodríguez","Kevin Álvarez","Dagoberto Espinoza","Víctor Dávila",
   "Rodrigo Aguirre","Cristian Borja","Alexis Gutiérrez","Néstor Araujo",
-  "Igor Lichnovsky","Sebastián Cáceres","Miguel Vázquez","Ralph Orquín",
+  "Sebastián Cáceres","Miguel Vázquez","Ralph Orquín",
   "Jonathan Dos Santos","Santiago Naveda","José Raúl Zúñiga",
-  "Patricio Salas", "Rodrigo Dourado", "Aaron Mejia", "Raphael Veiga"
+  "Patricio Salas", "Rodrigo Dourado", "Aaron Mejia", "Raphael Veiga",
+  "Vinícius Lima"
 )
 
 # --- Build acute/chronic/ACWR and join MD info ---
@@ -630,9 +632,10 @@ jugs = c("Néstor Araujo", "Brian Rodríguez", "Sebastián Cáceres", "Alan Cerv
          "Rodolfo Cota", "Erick Sánchez", "Henry Martín", "Israel Reyes",
          "Jonathan Dos Santos", "Kevin Álvarez", "Luis Ángel Malagón", "Miguel Vázquez", 
          "Ramón Juárez", "Alejandro Zendejas", "Rodrigo Aguirre", "Cristian Borja", 
-         "Dagoberto Espinoza", "Víctor Dávila", "Igor Lichnovsky", "Santiago Naveda", "Ralph Orquín",
+         "Dagoberto Espinoza", "Víctor Dávila", "Santiago Naveda", "Ralph Orquín",
          "Alexis Gutiérrez", "Isaías Violante", "José Raúl Zúñiga",
-         "Patricio Salas", "Rodrigo Dourado", "Aaron Mejia", "Raphael Veiga")
+         "Patricio Salas", "Rodrigo Dourado", "Aaron Mejia", "Raphael Veiga",
+         "Vinícius Lima")
 
 ACWR_MISSING_Y <- 0.65
 
@@ -683,6 +686,7 @@ rpe_df <- rpe_raw |>
       player == "Rodrigo Dourado" ~ "Rodrigo Dourado",
       player == "Aaron Mejia" ~ "Aaron Mejia",
       player == "Raphael Veiga" ~ "Raphael Veiga",
+      player == "Vinicius Lima" ~ "Vinícius Lima",
       TRUE ~ player
     ),
     

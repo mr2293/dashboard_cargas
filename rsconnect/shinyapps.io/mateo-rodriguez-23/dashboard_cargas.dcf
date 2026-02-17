@@ -5,6 +5,6 @@ account: mateo-rodriguez-23
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 14987266
-bundleId:
+bundleId: 11593969
 url: https://mateo-rodriguez-23.shinyapps.io/dashboard_cargas/
 version: 1

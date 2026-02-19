@@ -273,6 +273,7 @@ micros_shiny_comb <- read_csv("micros/micros_shiny_comb.csv") |>
     player == "Aaron Mejia" ~ "Aaron Mejia",
     player == "Raphael Veiga" ~ "Raphael Veiga",
     player == "Vinicius Lima" ~ "Vinícius Lima",
+    player == "Thiago Espinosa" ~ "Thiago Espinosa",
     TRUE ~ player
   ),
   date = as.Date(date))
@@ -325,7 +326,7 @@ selected_players <- c(
   "Sebastián Cáceres","Miguel Vázquez","Ralph Orquín",
   "Jonathan Dos Santos","Santiago Naveda","José Raúl Zúñiga",
   "Patricio Salas", "Rodrigo Dourado", "Aaron Mejia", "Raphael Veiga",
-  "Vinícius Lima"
+  "Vinícius Lima", "Thiago Espinosa"
 )
 
 # --- Build acute/chronic/ACWR and join MD info ---
@@ -635,7 +636,7 @@ jugs = c("Néstor Araujo", "Brian Rodríguez", "Sebastián Cáceres", "Alan Cerv
          "Dagoberto Espinoza", "Víctor Dávila", "Santiago Naveda", "Ralph Orquín",
          "Alexis Gutiérrez", "Isaías Violante", "José Raúl Zúñiga",
          "Patricio Salas", "Rodrigo Dourado", "Aaron Mejia", "Raphael Veiga",
-         "Vinícius Lima")
+         "Vinícius Lima", "Thiago Espinosa")
 
 ACWR_MISSING_Y <- 0.65
 
@@ -687,6 +688,7 @@ rpe_df <- rpe_raw |>
       player == "Aaron Mejia" ~ "Aaron Mejia",
       player == "Raphael Veiga" ~ "Raphael Veiga",
       player == "Vinicius Lima" ~ "Vinícius Lima",
+      player == "Thiago Espinosa" ~ "Thiago Espinosa",
       TRUE ~ player
     ),
     

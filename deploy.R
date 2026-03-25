@@ -18,6 +18,8 @@ if (requireNamespace("renv", quietly = TRUE)) {
   renv::deactivate()
 }
 
+options(repos = c(CRAN = "https://cran.rstudio.com/"))
+
 rsconnect::deployApp(
   appDir = ".",
   appName = "dashboard_cargas",

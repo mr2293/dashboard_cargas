@@ -1,4 +1,3 @@
-# deploy.R
 library(rsconnect)
 
 shiny_acc <- Sys.getenv("SHINY_ACC_NAME")
@@ -15,10 +14,14 @@ rsconnect::setAccountInfo(
   secret = shiny_secret
 )
 
+if (requireNamespace("renv", quietly = TRUE)) {
+  renv::deactivate()
+}
+
 rsconnect::deployApp(
   appDir = ".",
   appName = "dashboard_cargas",
-  account = Sys.getenv("SHINY_ACC_NAME"),
+  account = shiny_acc,
   server = "shinyapps.io",
   forceUpdate = TRUE,
   launch.browser = FALSE

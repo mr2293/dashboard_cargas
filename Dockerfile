@@ -99,7 +99,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /home/dashboard_cargas
 
 # Copy R project + renv.lock + R scripts
-COPY dashboard_cargas.Rproj renv.lock ./
+COPY dashboard_cargas.Rproj renv.lock .rscignore ./
 COPY app.R dashboard.R deploy.R ./
 
 # Copy data, www, micros folders

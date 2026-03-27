@@ -283,7 +283,7 @@ md_day_minutes <- micros_shiny_comb |>
   group_by(player, date) |>
   summarise(
     is_md   = any(match_day == "MD"),
-    minutos = sum(drill_duration[match_day == "MD"], na.rm = TRUE),
+    minutos = sum(session_duration[match_day == "MD"], na.rm = TRUE),
     .groups = "drop"
   )
 

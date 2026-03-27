@@ -24,3 +24,9 @@ packrat/
 *.rds
 *.qs
 
+# Allow player images
+!www/player_images/*.jpg
+!www/player_images/*.jpeg
+!www/player_images/*.png
+!www/player_images/*.avif
+

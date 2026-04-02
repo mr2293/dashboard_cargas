@@ -308,7 +308,7 @@ process_ewma <- function(data, col) {
         fill = NA, partial = TRUE
       ),
       !!paste0("chronic_load_", col) := zoo::rollapply(
-        .data[[paste0("acute_load_", col)]], width = 21,
+        .data[[col]], width = 21,
         FUN = \(x) ewma(x, alpha_chronic), align = "right",
         fill = NA, partial = TRUE
       ),
@@ -1162,3 +1162,53 @@ acwr_scatter_plot <- ggplot(
 
 sum(pain_scatter_df$pain_flag)
 sum(rings_df$pain_flag)
+
+# --- Tabla: Carga Aguda, Crónica y A:C por jugador por día ---
+# Set to a player name to filter, e.g. "Henry Martín". NULL shows all players.
+tabla_cargas_player <- "Henry Martín"
+
+tabla_cargas_data <- micros_individual |>
+  select(player, date, carga_aguda, carga_cronica, ac_ratio) |>
+  arrange(player, date)
+
+if (!is.null(tabla_cargas_player)) {
+  tabla_cargas_data <- tabla_cargas_data |> filter(player == tabla_cargas_player)
+}
+
+tabla_cargas <- tabla_cargas_data |>
+  gt(groupname_col = "player") |>
+  cols_label(
+    date         = "Fecha",
+    carga_aguda  = "Carga Aguda (7d)",
+    carga_cronica = "Carga Crónica (21d)",
+    ac_ratio     = "Relación A:C"
+  ) |>
+  fmt_number(columns = c(carga_aguda, carga_cronica), decimals = 1) |>
+  fmt_number(columns = ac_ratio, decimals = 2) |>
+  fmt_date(columns = date, date_style = "yMd") |>
+  data_color(
+    columns = ac_ratio,
+    method  = "numeric",
+    palette = c("#2ca02c", "#ffbf00", "#d62728"),
+    domain  = c(0.8, 1.3),
+    na_color = "white"
+  ) |>
+  tab_header(title = "Carga Aguda, Crónica y Relación A:C por Jugador")
+
+# --- Jugadores que superaron 800 m en HSR_abs_dist ---
+hsr_800 <- micros_shiny_comb |>
+  filter(player %in% selected_players, HSR_abs_dist > 800, match_day != "MD") |>
+  select(player, date, match_day, HSR_abs_dist) |>
+  arrange(date)
+
+tabla_hsr_800 <- hsr_800 |>
+  gt() |>
+  cols_label(
+    player       = "Jugador",
+    date         = "Fecha",
+    match_day    = "Tipo de Sesión",
+    HSR_abs_dist = "HSR (m)"
+  ) |>
+  fmt_number(columns = HSR_abs_dist, decimals = 1) |>
+  fmt_date(columns = date, date_style = "yMd") |>
+  tab_header(title = "Sesiones con HSR > 800 m")

@@ -1194,21 +1194,3 @@ tabla_cargas <- tabla_cargas_data |>
     na_color = "white"
   ) |>
   tab_header(title = "Carga Aguda, Crónica y Relación A:C por Jugador")
-
-# --- Jugadores que superaron 800 m en HSR_abs_dist ---
-hsr_800 <- micros_shiny_comb |>
-  filter(player %in% selected_players, HSR_abs_dist > 800, match_day != "MD") |>
-  select(player, date, match_day, HSR_abs_dist) |>
-  arrange(date)
-
-tabla_hsr_800 <- hsr_800 |>
-  gt() |>
-  cols_label(
-    player       = "Jugador",
-    date         = "Fecha",
-    match_day    = "Tipo de Sesión",
-    HSR_abs_dist = "HSR (m)"
-  ) |>
-  fmt_number(columns = HSR_abs_dist, decimals = 1) |>
-  fmt_date(columns = date, date_style = "yMd") |>
-  tab_header(title = "Sesiones con HSR > 800 m")

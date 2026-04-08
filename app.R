@@ -14,6 +14,7 @@ library(shinythemes)
 library(ggplot2)
 library(dplyr)
 library(tidyr)
+library(DT)
 
 # Load your data + helper plotting fns (recuperacion_df, micros_individual, plot_* fns)
 tryCatch(
@@ -92,6 +93,21 @@ ui <- fluidPage(
     )
   ),
   
+  fluidRow(
+    style = "margin: 10px 0;",
+    column(3,
+           tags$div(
+             style = "border: 1px solid #dee2e6; border-radius: 6px; padding: 12px; height: 100%;",
+             tags$h4("Sin Respuesta Hoy", style = "font-weight:bold; text-align:center; margin-top:0;"),
+             uiOutput("missing_respondents")
+           )
+    ),
+    column(9,
+           tags$h4("Resumen del Equipo", style = "text-align:center; font-weight:bold;"),
+           DTOutput("team_summary_table")
+    )
+  ),
+
   fluidRow(
     column(12,
            h3(NULL, align = "center"),
@@ -598,6 +614,87 @@ server <- function(input, output, session) {
     add_competition_banner(p, selected(), up_to)
   })
   
+  # =========================
+  #  Missing respondents
+  # =========================
+  output$missing_respondents <- renderUI({
+    rec_df <- get("recuperacion_df", inherits = TRUE)
+    ref_date <- max(rec_df$`Marca temporal`, na.rm = TRUE)
+
+    responded <- rec_df |>
+      dplyr::filter(`Marca temporal` == ref_date) |>
+      dplyr::pull(Nombre) |>
+      unique()
+
+    missing <- sort(setdiff(player_info$player, responded))
+
+    if (length(missing) == 0) {
+      tags$p(
+        paste0("Todos respondieron (", format(ref_date, "%d/%m/%Y"), ")"),
+        style = "color: #2ca02c; font-weight: bold; text-align: center;"
+      )
+    } else {
+      tags$div(
+        tags$p(
+          paste0(length(missing), " sin respuesta \u2013 ", format(ref_date, "%d/%m/%Y")),
+          style = "color: #d62728; font-weight: bold; margin-bottom: 6px;"
+        ),
+        tags$ul(
+          style = "padding-left: 18px; margin: 0;",
+          lapply(missing, function(p) tags$li(p, style = "font-size: 13px;"))
+        )
+      )
+    }
+  })
+
+  # =========================
+  #  Team summary table
+  # =========================
+  output$team_summary_table <- DT::renderDT({
+    df <- scatter_df() |>
+      dplyr::transmute(
+        Jugador            = player,
+        `Última Respuesta` = latest_date,
+        `Score Rec.`       = recovery_score,
+        `Est. Recuperación`= recovery_status,
+        `Est. Carga`       = load_status,
+        `Dolor Muscular`   = dplyr::if_else(
+          pain_flag,
+          dplyr::if_else(!is.na(zona_adolorida), paste0("S\u00ed \u2013 ", zona_adolorida), "S\u00ed"),
+          "No"
+        ),
+        status_color       = color_status,
+        sort_priority      = dplyr::case_when(
+          color_status == "red"    ~ 1L,
+          color_status == "yellow" ~ 2L,
+          color_status == "green"  ~ 3L,
+          TRUE ~ 4L
+        )
+      ) |>
+      dplyr::arrange(sort_priority, `Score Rec.`)
+
+    DT::datatable(
+      df,
+      options = list(
+        pageLength   = 30,
+        dom          = "tip",
+        order        = list(list(7L, "asc"), list(2L, "asc")),
+        columnDefs   = list(list(visible = FALSE, targets = c(6L, 7L)))
+      ),
+      rownames  = FALSE,
+      selection = "none",
+      class     = "compact stripe"
+    ) |>
+      DT::formatStyle(
+        "status_color",
+        target           = "row",
+        backgroundColor  = DT::styleEqual(
+          c("green",   "yellow",  "red"),
+          c("#d4edda", "#fff3cd", "#f8d7da")
+        )
+      )
+  })
+
   output$player_info_box <- renderUI({
     req(selected())
     player_row <- player_info |> filter(player == selected())

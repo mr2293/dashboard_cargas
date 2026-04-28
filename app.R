@@ -62,10 +62,40 @@ player_info <- tibble::tibble(
             )
 )
 
+# --- Header display helpers ---
+.meses_es <- c("enero","febrero","marzo","abril","mayo","junio",
+               "julio","agosto","septiembre","octubre","noviembre","diciembre")
+.dias_es  <- c("domingo","lunes","martes","miércoles","jueves","viernes","sábado")
+.cap      <- function(x) paste0(toupper(substr(x, 1, 1)), substr(x, 2, nchar(x)))
+.today_es <- paste0(
+  .cap(.dias_es[as.integer(format(Sys.Date(), "%w")) + 1L]), " ",
+  format(Sys.Date(), "%d"), " de ",
+  .cap(.meses_es[as.integer(format(Sys.Date(), "%m"))]), " de ",
+  format(Sys.Date(), "%Y")
+)
+.phase    <- if (exists("current_md_phase")) current_md_phase else "—"
+.md_label <- switch(.phase,
+  "MD"    = "MD",
+  "No"    = "No MD",
+  "Rehab" = "Rehabilitación",
+  ">-5"   = "MD >-5",
+  paste0("MD", .phase)
+)
+
 ui <- fluidPage(
   theme = shinytheme("cerulean"),
   titlePanel("Dashboard de Recuperación Física – Club América"),
-  
+
+  tags$div(
+    style = paste0(
+      "background: linear-gradient(135deg, #1a237e 0%, #1565c0 100%);",
+      "color: white; padding: 10px 24px; margin-bottom: 16px;",
+      "border-radius: 6px; display: flex; justify-content: space-between; align-items: center;"
+    ),
+    tags$span(.today_es, style = "font-size: 15px; opacity: 0.85;"),
+    tags$span(paste0("Entreno de ayer: ", .md_label), style = "font-size: 17px; font-weight: bold;")
+  ),
+
   fluidRow(
     column(
       10,

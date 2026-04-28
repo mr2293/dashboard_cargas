@@ -287,6 +287,14 @@ md_day_minutes <- micros_shiny_comb |>
     .groups = "drop"
   )
 
+# --- Current microcycle phase (from latest session) ---
+current_session_date <- max(micros_shiny_comb$date, na.rm = TRUE)
+current_md_phase <- micros_shiny_comb |>
+  filter(date == current_session_date) |>
+  count(match_day, sort = TRUE) |>
+  slice_head(n = 1) |>
+  pull(match_day)
+
 # --- EWMA helpers ---
 alpha_acute   <- 0.75
 alpha_chronic <- 0.35

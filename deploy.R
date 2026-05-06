@@ -34,15 +34,4 @@ rsconnect::deployApp(
   launch.browser = FALSE
 )
 
-# Set ANTHROPIC_API_KEY as a runtime environment variable on shinyapps.io
-if (nchar(anthropic_key) > 0) {
-  rsconnect::configureApp(
-    appName = "dashboard_cargas",
-    account = shiny_acc,
-    server  = "shinyapps.io",
-    envVars = c(ANTHROPIC_API_KEY = anthropic_key)
-  )
-  cat("ANTHROPIC_API_KEY configured on shinyapps.io\n")
-} else {
-  cat("Warning: ANTHROPIC_API_KEY is empty, skipping configureApp\n")
-}
+cat("Deployment complete. Set ANTHROPIC_API_KEY manually in shinyapps.io dashboard if needed.\n")

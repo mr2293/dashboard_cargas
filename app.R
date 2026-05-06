@@ -85,8 +85,26 @@ player_info <- tibble::tibble(
 ui <- fluidPage(
   theme = shinytheme("cerulean"),
   tags$style(HTML("
-    #btn_narrative { background-color: #0B1B4A !important; color: white !important; border: none !important; }
-    #btn_query     { background-color: #C1121F !important; color: white !important; border: none !important; }
+    #btn_narrative,
+    #btn_narrative:hover,
+    #btn_narrative:focus,
+    #btn_narrative:active,
+    #btn_narrative.active {
+      background-color: #0B1B4A !important;
+      color: white !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
+    #btn_query,
+    #btn_query:hover,
+    #btn_query:focus,
+    #btn_query:active,
+    #btn_query.active {
+      background-color: #C1121F !important;
+      color: white !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
   ")),
   titlePanel("Dashboard de Recuperación Física – Club América"),
 

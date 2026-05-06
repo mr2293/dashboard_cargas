@@ -21,9 +21,18 @@ if (requireNamespace("renv", quietly = TRUE)) {
 }
 
 options(
-  repos               = c(CRAN = "https://cran.rstudio.com/"),
+  repos                  = c(CRAN = "https://cran.rstudio.com/"),
   rsconnect.http.timeout = 300
 )
+
+# Write secrets.R so the key is bundled into the deployed app
+if (nchar(anthropic_key) > 0) {
+  writeLines(
+    paste0('Sys.setenv(ANTHROPIC_API_KEY = "', anthropic_key, '")'),
+    "secrets.R"
+  )
+  cat("secrets.R written for deployment\n")
+}
 
 rsconnect::deployApp(
   appDir        = ".",

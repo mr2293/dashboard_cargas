@@ -8,6 +8,8 @@
 #
 
 # app.R
+if (file.exists("secrets.R")) source("secrets.R")
+
 library(shiny)
 library(plotly)
 library(shinythemes)

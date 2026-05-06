@@ -15,6 +15,9 @@ packrat/
 .DS_Store
 *.swp
 
+# Secrets
+secrets.R
+
 # Shiny/outputs
 *.html
 *.pdf

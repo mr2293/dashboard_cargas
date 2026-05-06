@@ -204,7 +204,14 @@ plot_player_recuperacion <- function(player_name) {
       )    
       )
   
+  threshold_df <- data.frame(
+    type      = c("Fatiga", "Sueño", "Dolor Muscular"),
+    threshold = c(6, 6, 7)
+  )
+
   ggplot(player_long, aes(x = `Marca temporal`, y = score, group = type)) +
+    geom_hline(data = threshold_df, aes(yintercept = threshold),
+               linetype = "dashed", color = "gray40", linewidth = 0.5, alpha = 0.7) +
     geom_line(aes(color = type), linewidth = 0.6, alpha = 0.5) +
     geom_point(aes(
       fill = color,
@@ -218,11 +225,6 @@ plot_player_recuperacion <- function(player_name) {
       )
     ),
     shape = 21, size = 5, color = "white") +
-    # geom_text(
-    #   data = player_long |> filter(type == "Dolor Muscular"),
-    #   aes(label = `Zona Adolorida`),
-    #   vjust = -1.2, size = 3.5, color = "black"
-    # ) +
     facet_wrap(~type, ncol = 1, scales = "free_y") +
     scale_y_continuous(expand = expansion(mult = c(0.1, 0.1))) +
     scale_fill_manual(values = c("Alta" = "#1a9850", "Baja" = "#d7191c")) +
@@ -1166,39 +1168,3 @@ acwr_scatter_plot <- ggplot(
     panel.grid.major.y = element_blank()
   )
 
-# ggplotly(acwr_scatter_plot, tooltip = "text")
-
-sum(pain_scatter_df$pain_flag)
-sum(rings_df$pain_flag)
-
-# --- Tabla: Carga Aguda, Crónica y A:C por jugador por día ---
-# Set to a player name to filter, e.g. "Henry Martín". NULL shows all players.
-tabla_cargas_player <- "Henry Martín"
-
-tabla_cargas_data <- micros_individual |>
-  select(player, date, carga_aguda, carga_cronica, ac_ratio) |>
-  arrange(player, date)
-
-if (!is.null(tabla_cargas_player)) {
-  tabla_cargas_data <- tabla_cargas_data |> filter(player == tabla_cargas_player)
-}
-
-tabla_cargas <- tabla_cargas_data |>
-  gt(groupname_col = "player") |>
-  cols_label(
-    date         = "Fecha",
-    carga_aguda  = "Carga Aguda (7d)",
-    carga_cronica = "Carga Crónica (21d)",
-    ac_ratio     = "Relación A:C"
-  ) |>
-  fmt_number(columns = c(carga_aguda, carga_cronica), decimals = 1) |>
-  fmt_number(columns = ac_ratio, decimals = 2) |>
-  fmt_date(columns = date, date_style = "yMd") |>
-  data_color(
-    columns = ac_ratio,
-    method  = "numeric",
-    palette = c("#2ca02c", "#ffbf00", "#d62728"),
-    domain  = c(0.8, 1.3),
-    na_color = "white"
-  ) |>
-  tab_header(title = "Carga Aguda, Crónica y Relación A:C por Jugador")

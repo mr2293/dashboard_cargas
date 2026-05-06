@@ -197,7 +197,8 @@ ui <- fluidPage(
 )
 
 server <- function(input, output, session) {
-  selected <- reactiveVal(NULL)
+  selected        <- reactiveVal(NULL)
+  sorted_table_df <- reactiveVal(NULL)
   
   # ---------- helpers ----------
   to_plotly <- function(p, src = NULL) {
@@ -687,6 +688,7 @@ server <- function(input, output, session) {
         `Última Respuesta` = latest_date,
         `Score Rec.`       = recovery_score,
         `Est. Recuperación`= recovery_status,
+        ACWR               = dplyr::if_else(is.na(ac_ratio), NA_real_, round(ac_ratio, 2)),
         `Est. Carga`       = load_status,
         `Dolor Muscular`   = dplyr::if_else(
           pain_flag,
@@ -703,26 +705,45 @@ server <- function(input, output, session) {
       ) |>
       dplyr::arrange(sort_priority, `Score Rec.`)
 
+    sorted_table_df(df)
+
     DT::datatable(
       df,
       options = list(
         pageLength   = 30,
         dom          = "tip",
-        order        = list(list(7L, "asc"), list(2L, "asc")),
-        columnDefs   = list(list(visible = FALSE, targets = c(6L, 7L)))
+        order        = list(list(8L, "asc"), list(2L, "asc")),
+        columnDefs   = list(list(visible = FALSE, targets = c(7L, 8L)))
       ),
       rownames  = FALSE,
-      selection = "none",
-      class     = "compact stripe"
+      selection = "single",
+      class     = "compact stripe hover"
     ) |>
       DT::formatStyle(
         "status_color",
-        target           = "row",
-        backgroundColor  = DT::styleEqual(
+        target          = "row",
+        backgroundColor = DT::styleEqual(
           c("green",   "yellow",  "red"),
           c("#d4edda", "#fff3cd", "#f8d7da")
         )
+      ) |>
+      DT::formatStyle(
+        "ACWR",
+        backgroundColor = DT::styleInterval(
+          c(0.8, 1.3),
+          c("#cce5ff", "#d4edda", "#f8d7da")
+        )
       )
+  })
+
+  observeEvent(input$team_summary_table_rows_selected, {
+    row <- input$team_summary_table_rows_selected
+    df  <- sorted_table_df()
+    if (!is.null(row) && !is.null(df) && row <= nrow(df)) {
+      player_name <- df$Jugador[row]
+      selected(player_name)
+      updateSelectInput(session, "player_select", selected = player_name)
+    }
   })
 
   output$player_info_box <- renderUI({

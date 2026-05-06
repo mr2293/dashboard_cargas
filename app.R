@@ -209,15 +209,15 @@ ui <- fluidPage(
         # --- Narrative ---
         column(5, offset = 0,
           tags$div(style = "padding: 16px; border: 1px solid #dee2e6; border-radius:6px; margin-bottom:16px;",
-            tags$h4("Narrativa del equipo", style = "font-weight:700; color:#0B1B4A; margin-top:0;"),
+            tags$h4("Narrativa del equipo", style = "font-weight:700; color:#1565c0; margin-top:0;"),
             tags$p("Resumen automático del estado de recuperación y carga del equipo.",
                    style = "color:#6b7280; font-size:13px;"),
             actionButton("btn_narrative", "Generar Narrativa",
-                         style = paste0("background-color:#0B1B4A; color:white; font-weight:bold;",
+                         style = paste0("background-color:#1565c0; color:white; font-weight:bold;",
                                         " border:none; border-radius:4px; padding:8px 18px;")),
             tags$div(
               style = paste0("margin-top:14px; padding:14px; background:#f8f9fa;",
-                             " border-left:4px solid #0B1B4A; border-radius:4px;",
+                             " border-left:4px solid #1565c0; border-radius:4px;",
                              " min-height:80px; font-size:14px; line-height:1.7;"),
               textOutput("narrative_out")
             )

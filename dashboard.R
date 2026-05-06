@@ -1254,11 +1254,12 @@ build_narrative_prompt <- function(scatter_data, micros_data, recuperacion_data,
   )
 }
 
-build_nl_prompt <- function(scatter_data, micros_data, recuperacion_data, md_phase, question) {
+build_nl_prompt <- function(scatter_data, micros_raw, micros_data, recuperacion_data, md_phase, question) {
   md_label <- switch(md_phase,
     "MD" = "MD", "No" = "No MD", ">-5" = "MD >-5", paste0("MD", md_phase)
   )
 
+  # --- Current team snapshot ---
   team_rows <- dplyr::arrange(scatter_data, player) |>
     dplyr::mutate(
       acwr_str = ifelse(is.na(ac_ratio), "Sin WIMU", sprintf("%.2f", ac_ratio)),
@@ -1276,37 +1277,121 @@ build_nl_prompt <- function(scatter_data, micros_data, recuperacion_data, md_pha
     collapse = "\n"
   )
 
-  ref_wimu <- max(micros_data$date, na.rm = TRUE)
-  wimu_7d  <- dplyr::filter(micros_data, date >= ref_wimu - 6) |>
-    dplyr::arrange(player, date)
-  wimu_block <- paste(
-    sprintf("%s | %-26s | Aguda: %6.1f | Crónica: %6.1f | A:C: %.2f%s",
-            wimu_7d$date, wimu_7d$player,
-            wimu_7d$carga_aguda, wimu_7d$carga_cronica, wimu_7d$ac_ratio,
-            ifelse(wimu_7d$is_md, " [MD]", "")),
-    collapse = "\n"
+  # --- WIMU ranked totals (7d, prev 7d, 30d) ---
+  ref_wimu   <- max(micros_raw$date, na.rm = TRUE)
+  start_30d  <- ref_wimu - 29
+  start_7d   <- ref_wimu - 6
+  start_prev <- ref_wimu - 13
+
+  agg_wimu <- function(start, end) {
+    micros_raw |>
+      dplyr::filter(date >= start, date <= end) |>
+      dplyr::group_by(player) |>
+      dplyr::summarise(
+        dist = sum(distance_m,   na.rm = TRUE),
+        hsr  = sum(HSR_abs_dist, na.rm = TRUE),
+        pl   = sum(player_load,  na.rm = TRUE),
+        vmax = max(max_speed,    na.rm = TRUE),
+        .groups = "drop"
+      )
+  }
+
+  rank_block <- function(df, col, title, fmt) {
+    sorted <- dplyr::arrange(df, dplyr::desc(.data[[col]]))
+    lines  <- sprintf("%2d. %-24s — %s", seq_len(nrow(sorted)), sorted$player, fmt(sorted[[col]]))
+    paste0(title, ":\n", paste(lines, collapse = "\n"))
+  }
+  m <- function(x) paste0(round(x, 0), " m")
+  v <- function(x) paste0(round(x, 1), " km/h")
+  p <- function(x) as.character(round(x, 0))
+
+  make_wimu_rankings <- function(df, label) {
+    paste0("=== ", label, " ===\n",
+           paste(rank_block(df, "dist", "DISTANCIA TOTAL", m),
+                 rank_block(df, "hsr",  "HSR (>21 km/h)",  m),
+                 rank_block(df, "pl",   "PLAYER LOAD",      p),
+                 rank_block(df, "vmax", "VELOCIDAD MÁXIMA", v),
+                 sep = "\n\n"))
+  }
+
+  wimu_rankings <- paste(
+    make_wimu_rankings(agg_wimu(start_7d,   ref_wimu),
+                       paste0("Últimos 7 días (", format(start_7d, "%d/%m"), "–", format(ref_wimu, "%d/%m/%Y"), ")")),
+    make_wimu_rankings(agg_wimu(start_prev, ref_wimu - 7),
+                       paste0("Semana anterior (", format(start_prev, "%d/%m"), "–", format(ref_wimu - 7, "%d/%m/%Y"), ")")),
+    make_wimu_rankings(agg_wimu(start_30d,  ref_wimu),
+                       paste0("Últimos 30 días (", format(start_30d, "%d/%m"), "–", format(ref_wimu, "%d/%m/%Y"), ")")),
+    sep = "\n\n"
   )
 
-  ref_rec <- max(recuperacion_data$`Marca temporal`, na.rm = TRUE)
-  rec_7d  <- dplyr::filter(recuperacion_data, `Marca temporal` >= ref_rec - 6) |>
+  # --- WIMU daily detail (30d, 1 row per player per day) ---
+  wimu_daily <- micros_raw |>
+    dplyr::filter(date >= start_30d) |>
+    dplyr::group_by(date, player, match_day) |>
+    dplyr::summarise(
+      dist = sum(distance_m,   na.rm = TRUE),
+      hsr  = sum(HSR_abs_dist, na.rm = TRUE),
+      pl   = sum(player_load,  na.rm = TRUE),
+      vmax = max(max_speed,    na.rm = TRUE),
+      .groups = "drop"
+    ) |>
+    dplyr::arrange(date, player) |>
+    dplyr::mutate(row = sprintf(
+      "%s | %-24s | Dist: %5.0fm | HSR: %4.0fm | PL: %5.0f | Vmax: %.1f km/h | %s",
+      format(date, "%d/%m/%Y"), player, dist, hsr, pl, vmax, match_day
+    )) |>
+    dplyr::pull(row)
+
+  # --- A:C (EWMA) daily detail (30d) ---
+  ref_ac   <- max(micros_data$date, na.rm = TRUE)
+  ac_daily <- micros_data |>
+    dplyr::filter(date >= ref_ac - 29) |>
+    dplyr::arrange(player, date) |>
+    dplyr::mutate(row = sprintf(
+      "%s | %-24s | Aguda: %6.1f | Crónica: %6.1f | A:C: %.2f%s",
+      date, player, carga_aguda, carga_cronica, ac_ratio,
+      ifelse(is_md, " [MD]", "")
+    )) |>
+    dplyr::pull(row)
+
+  # --- Wellness daily detail (30d) ---
+  ref_rec   <- max(recuperacion_data$`Marca temporal`, na.rm = TRUE)
+  rec_daily <- recuperacion_data |>
+    dplyr::filter(`Marca temporal` >= ref_rec - 29) |>
     dplyr::select(Nombre, `Marca temporal`, fatiga_score, sueño_score, dolor_score, recovery_score) |>
-    dplyr::arrange(Nombre, `Marca temporal`)
-  rec_block <- paste(
-    sprintf("%s | %-26s | Fatiga: %4.1f | Sueño: %4.1f | Dolor: %4.1f | Rec: %4.1f",
-            rec_7d$`Marca temporal`, rec_7d$Nombre,
-            rec_7d$fatiga_score, rec_7d$sueño_score,
-            rec_7d$dolor_score, rec_7d$recovery_score),
-    collapse = "\n"
-  )
+    dplyr::arrange(`Marca temporal`, Nombre) |>
+    dplyr::mutate(row = sprintf(
+      "%s | %-24s | Fatiga: %4.1f | Sueño: %4.1f | Dolor: %4.1f | Rec: %4.1f",
+      `Marca temporal`, Nombre, fatiga_score, sueño_score, dolor_score, recovery_score
+    )) |>
+    dplyr::pull(row)
+
+  # --- Recent match dates ---
+  md_dates_str <- micros_raw |>
+    dplyr::filter(match_day == "MD") |>
+    dplyr::distinct(date) |>
+    dplyr::arrange(dplyr::desc(date)) |>
+    dplyr::slice_head(n = 5) |>
+    dplyr::pull(date) |>
+    format("%d/%m/%Y") |>
+    paste(collapse = ", ")
 
   paste0(
     "Eres un analista de ciencias del deporte del Club América. ",
-    "Responde usando EXCLUSIVAMENTE los datos que aparecen abajo. ",
-    "Sé directo, menciona valores numéricos exactos y responde en español.\n\n",
-    "Fase del microciclo (última sesión): ", md_label, "\n\n",
+    "Para totales y rankings usa EXCLUSIVAMENTE los TOTALES PRE-CALCULADOS. ",
+    "NUNCA sumes el detalle diario para obtener totales. ",
+    "El detalle diario es solo para preguntas sobre fechas específicas. ",
+    "Responde en español con valores numéricos exactos.\n\n",
+    "Fase del microciclo (última sesión): ", md_label, "\n",
+    "Partidos recientes (MD): ", if (nchar(md_dates_str) == 0) "ninguno" else md_dates_str, "\n\n",
     "=== ESTADO ACTUAL DEL EQUIPO ===\n", team_block, "\n\n",
-    "=== CARGA WIMU ÚLTIMOS 7 DÍAS ===\n", wimu_block, "\n\n",
-    "=== BIENESTAR ÚLTIMOS 7 DÍAS ===\n", rec_block, "\n\n",
+    "=== TOTALES WIMU PRE-CALCULADOS (usa para rankings y totales) ===\n", wimu_rankings, "\n\n",
+    "=== DETALLE DIARIO WIMU — 1 fila por jugador por día (últimos 30 días) ===\n",
+    paste(wimu_daily, collapse = "\n"), "\n\n",
+    "=== DETALLE DIARIO A:C (EWMA) — últimos 30 días ===\n",
+    paste(ac_daily, collapse = "\n"), "\n\n",
+    "=== DETALLE DIARIO BIENESTAR — últimos 30 días ===\n",
+    paste(rec_daily, collapse = "\n"), "\n\n",
     "PREGUNTA: ", question
   )
 }

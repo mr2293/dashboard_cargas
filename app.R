@@ -842,6 +842,7 @@ server <- function(input, output, session) {
     withProgress(message = "Consultando IA…", value = 0.6, {
       prompt <- build_nl_prompt(
         scatter_df(),
+        get("micros_shiny_comb",  inherits = TRUE),
         get("micros_individual",  inherits = TRUE),
         get("recuperacion_df",    inherits = TRUE),
         get("current_md_phase",   inherits = TRUE),

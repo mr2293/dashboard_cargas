@@ -84,6 +84,10 @@ player_info <- tibble::tibble(
 
 ui <- fluidPage(
   theme = shinytheme("cerulean"),
+  tags$style(HTML("
+    #btn_narrative { background-color: #0B1B4A !important; color: white !important; border: none !important; }
+    #btn_query     { background-color: #C1121F !important; color: white !important; border: none !important; }
+  ")),
   titlePanel("Dashboard de Recuperación Física – Club América"),
 
   tags$div(

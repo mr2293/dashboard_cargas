@@ -28,3 +28,10 @@ rsconnect::deployApp(
   forceUpdate = TRUE,
   launch.browser = FALSE
 )
+
+rsconnect::configureApp(
+  appName = "dashboard_cargas",
+  account = shiny_acc,
+  server  = "shinyapps.io",
+  envVars = list(ANTHROPIC_API_KEY = Sys.getenv("ANTHROPIC_API_KEY"))
+)

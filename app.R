@@ -193,6 +193,66 @@ ui <- fluidPage(
                       "Si es menor a 6, su estatus será 'Fatigado'."
                     )
            ))
+  ),
+
+  # =============================================================================
+  # Análisis IA
+  # =============================================================================
+  fluidRow(
+    column(12,
+      tags$hr(),
+      tags$h3("Análisis IA", style = "text-align:center; font-weight:bold; margin-bottom:4px;"),
+      tags$p("Consulta el estado del equipo con inteligencia artificial.",
+             style = "text-align:center; color:#6b7280; font-size:14px; margin-bottom:20px;"),
+
+      fluidRow(
+        # --- Narrative ---
+        column(5, offset = 0,
+          tags$div(style = "padding: 16px; border: 1px solid #dee2e6; border-radius:6px; margin-bottom:16px;",
+            tags$h4("Narrativa del equipo", style = "font-weight:700; color:#0B1B4A; margin-top:0;"),
+            tags$p("Resumen automático del estado de recuperación y carga del equipo.",
+                   style = "color:#6b7280; font-size:13px;"),
+            actionButton("btn_narrative", "Generar Narrativa",
+                         style = paste0("background-color:#0B1B4A; color:white; font-weight:bold;",
+                                        " border:none; border-radius:4px; padding:8px 18px;")),
+            tags$div(
+              style = paste0("margin-top:14px; padding:14px; background:#f8f9fa;",
+                             " border-left:4px solid #0B1B4A; border-radius:4px;",
+                             " min-height:80px; font-size:14px; line-height:1.7;"),
+              textOutput("narrative_out")
+            )
+          )
+        ),
+
+        # --- Free-form query ---
+        column(7,
+          tags$div(style = "padding: 16px; border: 1px solid #dee2e6; border-radius:6px; margin-bottom:16px;",
+            tags$h4("Consulta en Lenguaje Natural", style = "font-weight:700; color:#C1121F; margin-top:0;"),
+            tags$p("Haz cualquier pregunta sobre los datos de carga y bienestar.",
+                   style = "color:#6b7280; font-size:13px;"),
+            fluidRow(
+              column(9,
+                textInput("nl_query", NULL, width = "100%",
+                          placeholder = "¿Quién tiene el ACWR más alto? ¿Quién durmió peor esta semana?")
+              ),
+              column(3,
+                tags$div(style = "padding-top:1px;",
+                  actionButton("btn_query", "Consultar",
+                               style = paste0("background-color:#C1121F; color:white; font-weight:bold;",
+                                              " border:none; border-radius:4px; padding:8px 18px; width:100%;"))
+                )
+              )
+            ),
+            tags$div(
+              style = paste0("margin-top:14px; padding:14px; background:#f8f9fa;",
+                             " border-left:4px solid #C1121F; border-radius:4px;",
+                             " min-height:80px; font-size:14px; line-height:1.7;"),
+              textOutput("nl_answer_out")
+            )
+          )
+        )
+      )
+    )
   )
 )
 
@@ -760,6 +820,40 @@ server <- function(input, output, session) {
              tags$p(paste("Estatura:", player_row$height))
     )
   })
+
+  # =============================================================================
+  # AI Chat Server Logic
+  # =============================================================================
+  narrative_val  <- reactiveVal("")
+  nl_answer_val  <- reactiveVal("")
+
+  observeEvent(input$btn_narrative, {
+    withProgress(message = "Consultando IA…", value = 0.6, {
+      prompt <- build_narrative_prompt(
+        scatter_df(),
+        get("micros_individual",  inherits = TRUE),
+        get("recuperacion_df",    inherits = TRUE),
+        get("current_md_phase",   inherits = TRUE)
+      )
+      narrative_val(call_claude_api(prompt, max_tokens = 500))
+    })
+  })
+  output$narrative_out <- renderText(narrative_val())
+
+  observeEvent(input$btn_query, {
+    req(nchar(trimws(input$nl_query)) > 0)
+    withProgress(message = "Consultando IA…", value = 0.6, {
+      prompt <- build_nl_prompt(
+        scatter_df(),
+        get("micros_individual",  inherits = TRUE),
+        get("recuperacion_df",    inherits = TRUE),
+        get("current_md_phase",   inherits = TRUE),
+        input$nl_query
+      )
+      nl_answer_val(call_claude_api(prompt, max_tokens = 700))
+    })
+  })
+  output$nl_answer_out <- renderText(nl_answer_val())
 }
 
 shinyApp(ui = ui, server = server)

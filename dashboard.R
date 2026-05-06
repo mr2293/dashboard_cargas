@@ -6,6 +6,8 @@ library(ggrepel)
 library(lubridate)
 library(readxl)
 library(dplyr)
+library(httr)
+library(jsonlite)
 
 # Leer Cuestionario de Bienestar de Jugadores ---------
 survey_path <- "data/bienestar_jugador_primer_equipo_respuestas.xlsx"
@@ -1168,3 +1170,143 @@ acwr_scatter_plot <- ggplot(
     panel.grid.major.y = element_blank()
   )
 
+
+# =============================================================================
+# AI Chat Functions
+# =============================================================================
+
+call_claude_api <- function(prompt, max_tokens = 600) {
+  api_key <- Sys.getenv("ANTHROPIC_API_KEY")
+  if (nchar(trimws(api_key)) == 0)
+    return("Error: la variable ANTHROPIC_API_KEY no está configurada.")
+
+  tryCatch({
+    resp <- httr::POST(
+      url  = "https://api.anthropic.com/v1/messages",
+      httr::add_headers(
+        "x-api-key"         = api_key,
+        "anthropic-version" = "2023-06-01",
+        "content-type"      = "application/json"
+      ),
+      body = jsonlite::toJSON(list(
+        model      = "claude-haiku-4-5-20251001",
+        max_tokens = max_tokens,
+        messages   = list(list(role = "user", content = prompt))
+      ), auto_unbox = TRUE),
+      encode = "raw"
+    )
+    if (httr::status_code(resp) != 200) {
+      err <- httr::content(resp, as = "parsed")
+      return(paste0("Error de API (HTTP ", httr::status_code(resp), "): ", err$error$message))
+    }
+    parsed <- httr::content(resp, as = "parsed", encoding = "UTF-8")
+    parsed$content[[1]]$text
+  }, error = function(e) paste0("Error de conexión: ", conditionMessage(e)))
+}
+
+build_narrative_prompt <- function(scatter_data, micros_data, recuperacion_data, md_phase) {
+  md_label <- switch(md_phase,
+    "MD" = "MD (día de partido)", "No" = "sin fase MD",
+    ">-5" = "MD >-5", paste0("MD", md_phase)
+  )
+
+  n_green  <- sum(scatter_data$color_status == "green",  na.rm = TRUE)
+  n_yellow <- sum(scatter_data$color_status == "yellow", na.rm = TRUE)
+  n_red    <- sum(scatter_data$color_status == "red",    na.rm = TRUE)
+
+  fmt_players <- function(df, val_col, fmt = "%.2f") {
+    if (nrow(df) == 0) return("Ninguno.")
+    paste(sprintf("  %s: %s", df$player, sprintf(fmt, df[[val_col]])), collapse = "\n")
+  }
+
+  high_acwr <- dplyr::filter(scatter_data, !is.na(ac_ratio), ac_ratio > 1.3)
+  low_acwr  <- dplyr::filter(scatter_data, !is.na(ac_ratio), ac_ratio < 0.8)
+  fatigados <- dplyr::filter(scatter_data, recovery_score < 6)
+  doloridos <- dplyr::filter(scatter_data, pain_flag == TRUE)
+
+  pain_lines <- if (nrow(doloridos) > 0)
+    paste(sprintf("  %s%s", doloridos$player,
+      ifelse(!is.na(doloridos$zona_adolorida),
+             paste0(" (", doloridos$zona_adolorida, ")"), "")), collapse = "\n")
+  else "Ninguno."
+
+  context <- paste0(
+    "Fase del microciclo (última sesión): ", md_label, "\n\n",
+    "Estado del equipo hoy:\n",
+    "  Verde  (todo OK):  ", n_green,  " jugadores\n",
+    "  Amarillo (alerta): ", n_yellow, " jugadores\n",
+    "  Rojo   (problema): ", n_red,    " jugadores\n\n",
+    "ACWR alto (>1.3):\n",    fmt_players(high_acwr, "ac_ratio"), "\n\n",
+    "ACWR bajo (<0.8):\n",    fmt_players(low_acwr,  "ac_ratio"), "\n\n",
+    "Score recuperación bajo (<6):\n", fmt_players(fatigados, "recovery_score", "%.1f"), "\n\n",
+    "Dolor muscular reportado:\n", pain_lines, "\n"
+  )
+
+  paste0(
+    "Eres un analista de ciencias del deporte del Club América.\n",
+    "Escribe UN solo párrafo de 4-5 oraciones en español resumiendo el estado del equipo.\n",
+    "Menciona jugadores por nombre cuando sea relevante e incluye valores numéricos exactos.\n",
+    "REGLAS:\n",
+    "- No menciones aspectos tácticos ni decisiones de entrenador.\n",
+    "- No hagas sugerencias, recomendaciones ni predicciones.\n",
+    "- No uses viñetas. No pongas título. Solo el párrafo.\n\n",
+    "DATOS:\n", context
+  )
+}
+
+build_nl_prompt <- function(scatter_data, micros_data, recuperacion_data, md_phase, question) {
+  md_label <- switch(md_phase,
+    "MD" = "MD", "No" = "No MD", ">-5" = "MD >-5", paste0("MD", md_phase)
+  )
+
+  team_rows <- dplyr::arrange(scatter_data, player) |>
+    dplyr::mutate(
+      acwr_str = ifelse(is.na(ac_ratio), "Sin WIMU", sprintf("%.2f", ac_ratio)),
+      pain_str = dplyr::case_when(
+        pain_flag & !is.na(zona_adolorida) ~ paste0("Sí (", zona_adolorida, ")"),
+        pain_flag ~ "Sí",
+        TRUE ~ "No"
+      )
+    )
+  team_block <- paste(
+    sprintf("%-26s | Rec: %4.1f | %-11s | ACWR: %-7s | Carga: %-20s | Dolor: %s",
+            team_rows$player, team_rows$recovery_score,
+            team_rows$recovery_status, team_rows$acwr_str,
+            team_rows$load_status, team_rows$pain_str),
+    collapse = "\n"
+  )
+
+  ref_wimu <- max(micros_data$date, na.rm = TRUE)
+  wimu_7d  <- dplyr::filter(micros_data, date >= ref_wimu - 6) |>
+    dplyr::arrange(player, date)
+  wimu_block <- paste(
+    sprintf("%s | %-26s | Aguda: %6.1f | Crónica: %6.1f | A:C: %.2f%s",
+            wimu_7d$date, wimu_7d$player,
+            wimu_7d$carga_aguda, wimu_7d$carga_cronica, wimu_7d$ac_ratio,
+            ifelse(wimu_7d$is_md, " [MD]", "")),
+    collapse = "\n"
+  )
+
+  ref_rec <- max(recuperacion_data$`Marca temporal`, na.rm = TRUE)
+  rec_7d  <- dplyr::filter(recuperacion_data, `Marca temporal` >= ref_rec - 6) |>
+    dplyr::select(Nombre, `Marca temporal`, fatiga_score, sueño_score, dolor_score, recovery_score) |>
+    dplyr::arrange(Nombre, `Marca temporal`)
+  rec_block <- paste(
+    sprintf("%s | %-26s | Fatiga: %4.1f | Sueño: %4.1f | Dolor: %4.1f | Rec: %4.1f",
+            rec_7d$`Marca temporal`, rec_7d$Nombre,
+            rec_7d$fatiga_score, rec_7d$sueño_score,
+            rec_7d$dolor_score, rec_7d$recovery_score),
+    collapse = "\n"
+  )
+
+  paste0(
+    "Eres un analista de ciencias del deporte del Club América. ",
+    "Responde usando EXCLUSIVAMENTE los datos que aparecen abajo. ",
+    "Sé directo, menciona valores numéricos exactos y responde en español.\n\n",
+    "Fase del microciclo (última sesión): ", md_label, "\n\n",
+    "=== ESTADO ACTUAL DEL EQUIPO ===\n", team_block, "\n\n",
+    "=== CARGA WIMU ÚLTIMOS 7 DÍAS ===\n", wimu_block, "\n\n",
+    "=== BIENESTAR ÚLTIMOS 7 DÍAS ===\n", rec_block, "\n\n",
+    "PREGUNTA: ", question
+  )
+}

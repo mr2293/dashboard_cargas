@@ -255,25 +255,19 @@ plot_player_recuperacion("Henry Martín")
 
 micros_shiny_comb <- read_csv("micros/micros_shiny_comb.csv") |>
   mutate(player = case_when(
-    player == "Néstor Alejandro Araujo Razo" ~ "Néstor Araujo",
-    player == "Santiago Naveda Lara" ~ "Santiago Naveda",
     player == "Pato Salas" ~ "Patricio Salas",
     player == "Miguel Ram’rez" ~ "Miguel Ramírez",
     player == "Miguel Ramirez" ~ "Miguel Ramírez",
     player == "Miguel  Vazquez" ~ "Miguel Vázquez",
-    player == "Nestor Araujo" ~ "Néstor Araujo",
-    player == "Jona Dos Santos" ~ "Jonathan Dos Santos",
     player == "Luis Ángel Malagón Velázquez" ~ "Luis Ángel Malagón",
     player == "Alexis Gutierrez" ~ "Alexis Gutiérrez",
     player == "Sebastian Cáceres" ~ "Sebastián Cáceres",
     player == "Isaias Violante" ~ "Isaías Violante",
     player == "Jose Zuniga" ~ "José Raúl Zúñiga",
-    player == "Ralph Orquin" ~ "Ralph Orquín",
     player == "kevin alvarez" ~ "Kevin Álvarez",
     player == "Erick Sanchez" ~ "Erick Sánchez",
     player == "Brian Rodriguez" ~ "Brian Rodríguez",
     player == "Victor Davila" ~ "Víctor Dávila",
-    player == "Vinicius Lima" ~ "Vinícius Lima",
     player == "Aaron Mejia" ~ "Aaron Mejia",
     TRUE ~ player
   ),
@@ -331,11 +325,9 @@ selected_players <- c(
   "Israel Reyes","Henry Martín","Alejandro Zendejas",
   "Isaías Violante","Alan Cervantes","Ramón Juárez","Erick Sánchez",
   "Brian Rodríguez","Kevin Álvarez","Dagoberto Espinoza","Víctor Dávila",
-  "Cristian Borja","Alexis Gutiérrez","Néstor Araujo",
-  "Sebastián Cáceres","Miguel Vázquez","Ralph Orquín",
-  "Jonathan Dos Santos","Santiago Naveda","José Raúl Zúñiga",
-  "Patricio Salas", "Rodrigo Dourado", "Aaron Mejia", "Raphael Veiga",
-  "Vinícius Lima", "Thiago Espinosa", "Emilio Lara", "Franco Rossano"
+  "Cristian Borja","Alexis Gutiérrez", "Sebastián Cáceres","Miguel Vázquez",
+  "José Raúl Zúñiga", "Patricio Salas", "Raphael Veiga", "Thiago Espinosa", 
+  "Emilio Lara", "Franco Rossano"
 )
 
 # --- Build acute/chronic/ACWR and join MD info ---
@@ -638,14 +630,13 @@ plot_individual_hsr <- function(player) {
 # Example
 plot_individual_hsr("Rodrigo Dourado")
 
-jugs = c("Néstor Araujo", "Brian Rodríguez", "Sebastián Cáceres", "Alan Cervantes",
+jugs = c("Brian Rodríguez", "Sebastián Cáceres", "Alan Cervantes",
          "Rodolfo Cota", "Erick Sánchez", "Henry Martín", "Israel Reyes",
-         "Jonathan Dos Santos", "Kevin Álvarez", "Luis Ángel Malagón", "Miguel Vázquez",
+         "Kevin Álvarez", "Luis Ángel Malagón", "Miguel Vázquez",
          "Ramón Juárez", "Alejandro Zendejas", "Cristian Borja",
-         "Dagoberto Espinoza", "Víctor Dávila", "Santiago Naveda", "Ralph Orquín",
-         "Alexis Gutiérrez", "Isaías Violante", "José Raúl Zúñiga",
-         "Patricio Salas", "Rodrigo Dourado", "Aaron Mejia", "Raphael Veiga",
-         "Vinícius Lima", "Thiago Espinosa", "Emilio Lara", "Franco Rossano")
+         "Dagoberto Espinoza", "Víctor Dávila", "Alexis Gutiérrez", 
+         "Isaías Violante", "José Raúl Zúñiga", "Patricio Salas", 
+         "Raphael Veiga", "Thiago Espinosa", "Emilio Lara", "Franco Rossano")
 
 ACWR_MISSING_Y <- 0.65
 
@@ -674,26 +665,17 @@ rpe_df <- rpe_raw |>
     player  = str_squish(player),
     
     player = case_when(
-      player == "Néstor Alejandro Araujo Razo" ~ "Néstor Araujo",
-      player == "Santiago Naveda Lara" ~ "Santiago Naveda",
       player == "Pato Salas" ~ "Patricio Salas",
-      player == "Miguel Ram'rez" ~ "Miguel Ramírez",
-      player == "Miguel Ramirez" ~ "Miguel Ramírez",
       player == "Miguel  Vazquez" ~ "Miguel Vázquez",
-      player == "Nestor Araujo" ~ "Néstor Araujo",
-      player == "Jona Dos Santos" ~ "Jonathan Dos Santos",
       player == "Luis Ángel Malagón Velázquez" ~ "Luis Ángel Malagón",
       player == "Alexis Gutierrez" ~ "Alexis Gutiérrez",
       player == "Sebastian Cáceres" ~ "Sebastián Cáceres",
       player == "Isaias Violante" ~ "Isaías Violante",
       player == "Jose Zuniga" ~ "José Raúl Zúñiga",
-      player == "Ralph Orquin" ~ "Ralph Orquín",
       player == "kevin alvarez" ~ "Kevin Álvarez",
       player == "Erick Sanchez" ~ "Erick Sánchez",
       player == "Brian Rodriguez" ~ "Brian Rodríguez",
       player == "Victor Davila" ~ "Víctor Dávila",
-      player == "Vinicius Lima" ~ "Vinícius Lima",
-      player == "Aaron Mejia" ~ "Aaron Mejia",
       TRUE ~ player
     ),
     

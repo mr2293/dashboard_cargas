@@ -255,29 +255,26 @@ plot_player_recuperacion("Henry Martín")
 
 micros_shiny_comb <- read_csv("micros/micros_shiny_comb.csv") |>
   mutate(player = case_when(
-    player == "Cristian Yonathan Calderón del Real" ~ "Cristian Calderón",
-    player == "Ralph Orquin" ~ "Ralph Orquín",
-    player == "kevin alvarez" ~ "Kevin Álvarez",
-    player == "Erick Sanchez" ~ "Erick Sánchez",
-    player == "Brian Rodriguez" ~ "Brian Rodríguez",
-    player == "Victor Davila" ~ "Víctor Dávila",
+    player == "Néstor Alejandro Araujo Razo" ~ "Néstor Araujo",
+    player == "Santiago Naveda Lara" ~ "Santiago Naveda",
+    player == "Pato Salas" ~ "Patricio Salas",
+    player == "Miguel Ram’rez" ~ "Miguel Ramírez",
     player == "Miguel Ramirez" ~ "Miguel Ramírez",
     player == "Miguel  Vazquez" ~ "Miguel Vázquez",
     player == "Nestor Araujo" ~ "Néstor Araujo",
-    # player == "Fidalgo Fidalgo" ~ "Álvaro Fidalgo",
     player == "Jona Dos Santos" ~ "Jonathan Dos Santos",
     player == "Luis Ángel Malagón Velázquez" ~ "Luis Ángel Malagón",
     player == "Alexis Gutierrez" ~ "Alexis Gutiérrez",
     player == "Sebastian Cáceres" ~ "Sebastián Cáceres",
     player == "Isaias Violante" ~ "Isaías Violante",
     player == "Jose Zuniga" ~ "José Raúl Zúñiga",
-    # player == "Allan Maximin" ~ "Allan Saint-Maximin",
-    player == "Patricio Salas" ~ "Patricio Salas",
-    player == "Rodrigo Dourado" ~ "Rodrigo Dourado",
-    player == "Aaron Mejia" ~ "Aaron Mejia",
-    player == "Raphael Veiga" ~ "Raphael Veiga",
+    player == "Ralph Orquin" ~ "Ralph Orquín",
+    player == "kevin alvarez" ~ "Kevin Álvarez",
+    player == "Erick Sanchez" ~ "Erick Sánchez",
+    player == "Brian Rodriguez" ~ "Brian Rodríguez",
+    player == "Victor Davila" ~ "Víctor Dávila",
     player == "Vinicius Lima" ~ "Vinícius Lima",
-    player == "Thiago Espinosa" ~ "Thiago Espinosa",
+    player == "Aaron Mejia" ~ "Aaron Mejia",
     TRUE ~ player
   ),
   date = as.Date(date))
@@ -338,7 +335,7 @@ selected_players <- c(
   "Sebastián Cáceres","Miguel Vázquez","Ralph Orquín",
   "Jonathan Dos Santos","Santiago Naveda","José Raúl Zúñiga",
   "Patricio Salas", "Rodrigo Dourado", "Aaron Mejia", "Raphael Veiga",
-  "Vinícius Lima", "Thiago Espinosa"
+  "Vinícius Lima", "Thiago Espinosa", "Emilio Lara", "Franco Rossano"
 )
 
 # --- Build acute/chronic/ACWR and join MD info ---
@@ -641,14 +638,14 @@ plot_individual_hsr <- function(player) {
 # Example
 plot_individual_hsr("Rodrigo Dourado")
 
-jugs = c("Néstor Araujo", "Brian Rodríguez", "Sebastián Cáceres", "Alan Cervantes", 
+jugs = c("Néstor Araujo", "Brian Rodríguez", "Sebastián Cáceres", "Alan Cervantes",
          "Rodolfo Cota", "Erick Sánchez", "Henry Martín", "Israel Reyes",
-         "Jonathan Dos Santos", "Kevin Álvarez", "Luis Ángel Malagón", "Miguel Vázquez", 
-         "Ramón Juárez", "Alejandro Zendejas", "Cristian Borja", 
+         "Jonathan Dos Santos", "Kevin Álvarez", "Luis Ángel Malagón", "Miguel Vázquez",
+         "Ramón Juárez", "Alejandro Zendejas", "Cristian Borja",
          "Dagoberto Espinoza", "Víctor Dávila", "Santiago Naveda", "Ralph Orquín",
          "Alexis Gutiérrez", "Isaías Violante", "José Raúl Zúñiga",
          "Patricio Salas", "Rodrigo Dourado", "Aaron Mejia", "Raphael Veiga",
-         "Vinícius Lima", "Thiago Espinosa")
+         "Vinícius Lima", "Thiago Espinosa", "Emilio Lara", "Franco Rossano")
 
 ACWR_MISSING_Y <- 0.65
 
@@ -676,31 +673,27 @@ rpe_df <- rpe_raw |>
     # clean whitespace/case a bit (optional but helps matching)
     player  = str_squish(player),
     
-    # same recodes as micros_shiny_comb
     player = case_when(
-      player == "Cristian Yonathan Calderón del Real" ~ "Cristian Calderón",
-      player == "Ralph Orquin" ~ "Ralph Orquín",
-      player == "kevin alvarez" ~ "Kevin Álvarez",
-      player == "Erick Sanchez" ~ "Erick Sánchez",
-      player == "Brian Rodriguez" ~ "Brian Rodríguez",
-      player == "Victor Davila" ~ "Víctor Dávila",
+      player == "Néstor Alejandro Araujo Razo" ~ "Néstor Araujo",
+      player == "Santiago Naveda Lara" ~ "Santiago Naveda",
+      player == "Pato Salas" ~ "Patricio Salas",
+      player == "Miguel Ram'rez" ~ "Miguel Ramírez",
       player == "Miguel Ramirez" ~ "Miguel Ramírez",
       player == "Miguel  Vazquez" ~ "Miguel Vázquez",
       player == "Nestor Araujo" ~ "Néstor Araujo",
-      # player == "Fidalgo Fidalgo" ~ "Álvaro Fidalgo",
       player == "Jona Dos Santos" ~ "Jonathan Dos Santos",
       player == "Luis Ángel Malagón Velázquez" ~ "Luis Ángel Malagón",
       player == "Alexis Gutierrez" ~ "Alexis Gutiérrez",
       player == "Sebastian Cáceres" ~ "Sebastián Cáceres",
       player == "Isaias Violante" ~ "Isaías Violante",
       player == "Jose Zuniga" ~ "José Raúl Zúñiga",
-      # player == "Allan Maximin" ~ "Allan Saint-Maximin",
-      player == "Patricio Salas" ~ "Patricio Salas",
-      player == "Rodrigo Dourado" ~ "Rodrigo Dourado",
-      player == "Aaron Mejia" ~ "Aaron Mejia",
-      player == "Raphael Veiga" ~ "Raphael Veiga",
+      player == "Ralph Orquin" ~ "Ralph Orquín",
+      player == "kevin alvarez" ~ "Kevin Álvarez",
+      player == "Erick Sanchez" ~ "Erick Sánchez",
+      player == "Brian Rodriguez" ~ "Brian Rodríguez",
+      player == "Victor Davila" ~ "Víctor Dávila",
       player == "Vinicius Lima" ~ "Vinícius Lima",
-      player == "Thiago Espinosa" ~ "Thiago Espinosa",
+      player == "Aaron Mejia" ~ "Aaron Mejia",
       TRUE ~ player
     ),
     
@@ -753,7 +746,7 @@ scatter_df_rpe <- latest_rpe |>
     y_plot = if_else(is.na(ac_ratio), ACWR_MISSING_Y, ac_ratio),
     
     load_status = case_when(
-      is.na(ac_ratio) ~ "Sin WIMU (sin ACWR)",
+      is.na(ac_ratio) ~ "Sin Catapult (sin ACWR)",
       ac_ratio < 0.8 ~ "Carga Baja",
       ac_ratio > 1.3 ~ "Carga Alta",
       TRUE ~ "Carga Óptima"
@@ -870,7 +863,7 @@ rest_scatter_df <- latest_rest |>
     rest_status = if_else(rest_score >= 6, "Descansado", "Cansado"),
     
     load_status = case_when(
-      is.na(ac_ratio) ~ "Sin WIMU (sin ACWR)",
+      is.na(ac_ratio) ~ "Sin Catapult (sin ACWR)",
       ac_ratio < 0.8 ~ "Carga Baja",
       ac_ratio > 1.3 ~ "Carga Alta",
       TRUE ~ "Carga Óptima"
@@ -969,7 +962,7 @@ pain_scatter_df <- latest_pain2 |>
     pain_status = if_else(pain_score < 6, "Sin dolor", "Con dolor"),
     
     load_status = case_when(
-      is.na(ac_ratio) ~ "Sin WIMU (sin ACWR)",
+      is.na(ac_ratio) ~ "Sin Catapult (sin ACWR)",
       ac_ratio < 0.8 ~ "Carga Baja",
       ac_ratio > 1.3 ~ "Carga Alta",
       TRUE ~ "Carga Óptima"
@@ -1102,7 +1095,7 @@ scatter_df <- latest_recovery |>
     recovery_status = dplyr::if_else(recovery_score >= 6, "Recuperado", "Fatigado"),
     
     load_status = dplyr::case_when(
-      is.na(ac_ratio) ~ "Sin WIMU (sin ACWR)",
+      is.na(ac_ratio) ~ "Sin Catapult (sin ACWR)",
       ac_ratio < 0.8 ~ "Carga Baja",
       ac_ratio > 1.3 ~ "Carga Alta",
       TRUE ~ "Carga Óptima"
@@ -1262,7 +1255,7 @@ build_nl_prompt <- function(scatter_data, micros_raw, micros_data, recuperacion_
   # --- Current team snapshot ---
   team_rows <- dplyr::arrange(scatter_data, player) |>
     dplyr::mutate(
-      acwr_str = ifelse(is.na(ac_ratio), "Sin WIMU", sprintf("%.2f", ac_ratio)),
+      acwr_str = ifelse(is.na(ac_ratio), "Sin Catapult", sprintf("%.2f", ac_ratio)),
       pain_str = dplyr::case_when(
         pain_flag & !is.na(zona_adolorida) ~ paste0("Sí (", zona_adolorida, ")"),
         pain_flag ~ "Sí",
@@ -1277,13 +1270,13 @@ build_nl_prompt <- function(scatter_data, micros_raw, micros_data, recuperacion_
     collapse = "\n"
   )
 
-  # --- WIMU ranked totals (7d, prev 7d, 30d) ---
-  ref_wimu   <- max(micros_raw$date, na.rm = TRUE)
-  start_30d  <- ref_wimu - 29
-  start_7d   <- ref_wimu - 6
-  start_prev <- ref_wimu - 13
+  # --- Catapult ranked totals (7d, prev 7d, 30d) ---
+  ref_catapult   <- max(micros_raw$date, na.rm = TRUE)
+  start_30d  <- ref_catapult - 29
+  start_7d   <- ref_catapult - 6
+  start_prev <- ref_catapult - 13
 
-  agg_wimu <- function(start, end) {
+  agg_catapult <- function(start, end) {
     micros_raw |>
       dplyr::filter(date >= start, date <= end) |>
       dplyr::group_by(player) |>
@@ -1305,7 +1298,7 @@ build_nl_prompt <- function(scatter_data, micros_raw, micros_data, recuperacion_
   v <- function(x) paste0(round(x, 1), " km/h")
   p <- function(x) as.character(round(x, 0))
 
-  make_wimu_rankings <- function(df, label) {
+  make_catapult_rankings <- function(df, label) {
     paste0("=== ", label, " ===\n",
            paste(rank_block(df, "dist", "DISTANCIA TOTAL", m),
                  rank_block(df, "hsr",  "HSR (>21 km/h)",  m),
@@ -1314,18 +1307,18 @@ build_nl_prompt <- function(scatter_data, micros_raw, micros_data, recuperacion_
                  sep = "\n\n"))
   }
 
-  wimu_rankings <- paste(
-    make_wimu_rankings(agg_wimu(start_7d,   ref_wimu),
-                       paste0("Últimos 7 días (", format(start_7d, "%d/%m"), "–", format(ref_wimu, "%d/%m/%Y"), ")")),
-    make_wimu_rankings(agg_wimu(start_prev, ref_wimu - 7),
-                       paste0("Semana anterior (", format(start_prev, "%d/%m"), "–", format(ref_wimu - 7, "%d/%m/%Y"), ")")),
-    make_wimu_rankings(agg_wimu(start_30d,  ref_wimu),
-                       paste0("Últimos 30 días (", format(start_30d, "%d/%m"), "–", format(ref_wimu, "%d/%m/%Y"), ")")),
+  catapult_rankings <- paste(
+    make_catapult_rankings(agg_catapult(start_7d,   ref_catapult),
+                       paste0("Últimos 7 días (", format(start_7d, "%d/%m"), "–", format(ref_catapult, "%d/%m/%Y"), ")")),
+    make_catapult_rankings(agg_catapult(start_prev, ref_catapult - 7),
+                       paste0("Semana anterior (", format(start_prev, "%d/%m"), "–", format(ref_catapult - 7, "%d/%m/%Y"), ")")),
+    make_catapult_rankings(agg_catapult(start_30d,  ref_catapult),
+                       paste0("Últimos 30 días (", format(start_30d, "%d/%m"), "–", format(ref_catapult, "%d/%m/%Y"), ")")),
     sep = "\n\n"
   )
 
-  # --- WIMU daily detail (30d, 1 row per player per day) ---
-  wimu_daily <- micros_raw |>
+  # --- Catapult daily detail (30d, 1 row per player per day) ---
+  catapult_daily <- micros_raw |>
     dplyr::filter(date >= start_30d) |>
     dplyr::group_by(date, player, match_day) |>
     dplyr::summarise(
@@ -1385,9 +1378,9 @@ build_nl_prompt <- function(scatter_data, micros_raw, micros_data, recuperacion_
     "Fase del microciclo (última sesión): ", md_label, "\n",
     "Partidos recientes (MD): ", if (nchar(md_dates_str) == 0) "ninguno" else md_dates_str, "\n\n",
     "=== ESTADO ACTUAL DEL EQUIPO ===\n", team_block, "\n\n",
-    "=== TOTALES WIMU PRE-CALCULADOS (usa para rankings y totales) ===\n", wimu_rankings, "\n\n",
-    "=== DETALLE DIARIO WIMU — 1 fila por jugador por día (últimos 30 días) ===\n",
-    paste(wimu_daily, collapse = "\n"), "\n\n",
+    "=== TOTALES CATAPULT PRE-CALCULADOS (usa para rankings y totales) ===\n", catapult_rankings, "\n\n",
+    "=== DETALLE DIARIO CATAPULT — 1 fila por jugador por día (últimos 30 días) ===\n",
+    paste(catapult_daily, collapse = "\n"), "\n\n",
     "=== DETALLE DIARIO A:C (EWMA) — últimos 30 días ===\n",
     paste(ac_daily, collapse = "\n"), "\n\n",
     "=== DETALLE DIARIO BIENESTAR — últimos 30 días ===\n",

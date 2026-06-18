@@ -32,35 +32,33 @@ if (!exists("ACWR_MISSING_Y", inherits = TRUE)) {
 }
 
 player_info <- tibble::tibble(
-  player = c("Néstor Araujo", "Brian Rodríguez", "Sebastián Cáceres", "Alan Cervantes",
+  player = c("Brian Rodríguez", "Sebastián Cáceres", "Alan Cervantes",
              "Rodolfo Cota", "Erick Sánchez", "Henry Martín", "Israel Reyes",
              "Jonathan Dos Santos", "Kevin Álvarez", "Luis Ángel Malagón", "Miguel Vázquez",
              "Ramón Juárez", "Alejandro Zendejas", "Cristian Borja",
-             "Dagoberto Espinoza", "Víctor Dávila", "Santiago Naveda", "Ralph Orquín",
-             "Alexis Gutiérrez", "Isaías Violante", "José Raúl Zúñiga", "Patricio Salas",
-             "Rodrigo Dourado", "Aaron Mejia", "Raphael Veiga", "Fernando Tapia", "Vinícius Lima",
-             "Thiago Espinosa"
+             "Dagoberto Espinoza", "Víctor Dávila", "Alexis Gutiérrez", "Isaías Violante", 
+             "José Raúl Zúñiga", "Patricio Salas", "Raphael Veiga", "Fernando Tapia", 
+             "Thiago Espinosa", "Emilio Lara", "Franco Rossano"
              ),
-  image = c("nestor.jpg", "brian.jpg", "caceres.jpg", "cervantes.jpg", "cota.jpg",
+  image = c("brian.jpg", "caceres.jpg", "cervantes.jpg", "cota.jpg",
             "erick_sanchez.jpg", "henry.jpg", "israel_reyes.jpg",
             "jonathan.jpg", "kevin.jpg", "malagon.jpg", "miguel_vazquez.jpg", "ramon.jpg",
             "zendejas.jpg", "borja.jpg", "dagoberto.jpg", "davila.jpg",
-            "naveda.jpg", "ralph.jpg", "alexis_gtz.jpg", "violante.jpg",
-            "zuniga.jpg", "pato_salas.jpg", "dourado.jpg", "mejia.jpg", "veiga.jpg",
-            "tapia.jpg", "lima.jpg", "thiago.jpg"
+            "alexis_gtz.jpg", "violante.jpg", "zuniga.jpg", "pato_salas.jpg", "veiga.jpg",
+            "tapia.jpg", "thiago.jpg", "pelon.jpg", "rossano.jpeg"
             ),
-  age = c("29/08/1991", "20/05/2000", "18/08/1999", "17/01/1998", "03/07/1987", "27/09/1999", 
-          "18/11/1992", "23/05/2000", "26/04/1990", "15/01/1999", "02/03/1997", "07/02/2004", "09/05/2001", 
-          "07/02/1998", "18/02/1993", "17/04/2004", "04/11/1997", "16/04/2001", 
-          "15/04/2003", "26/02/2000", "20/10/2003", "13/07/1994", "17/02/2004", "17/06/1994", 
-          "06/06/2001", "19/06/1995", "17/06/2001", "11/06/1996", "09/11/2004"
+  age = c("20/05/2000", "18/08/1999", "17/01/1998", "03/07/1987", "27/09/1999",
+          "18/11/1992", "23/05/2000", "26/04/1990", "15/01/1999", "02/03/1997", "07/02/2004", "09/05/2001",
+          "07/02/1998", "18/02/1993", "17/04/2004", "04/11/1997",
+          "26/02/2000", "20/10/2003", "13/07/1994", "17/02/2004",
+          "19/06/1995", "17/06/2001", "09/11/2004",
+          "18/05/2002", "27/07/2005"
           ),
-  height = c("1.88 m", "1.75 m", "1.80 m", "1.81 m", "1.83 m", "1.67 m",
+  height = c("1.75 m", "1.80 m", "1.81 m", "1.83 m", "1.67 m",
             "1.77 m", "1.79 m", "1.72 m", "1.76 m",
-             "1.82 m", "1.85 m", "1.82 m", "1.70 m", "1.79 m", "1.80 m",
-             "1.73 m", "1.80 m", "1.77 m", "1.75 m", "1.73 m", "1.80 m",
-            "1.85 m", "1.86 m", "1.78 m", "1.76m", "1.85 m", "1.81 m", 
-            "1.76 m"
+            "1.82 m", "1.85 m", "1.82 m", "1.70 m", "1.79 m", "1.80 m",
+            "1.73 m", "1.75 m", "1.73 m", "1.80 m", "1.85 m", "1.76m", 
+            "1.85 m", "1.76 m", "1.87m", "1.79m"
             )
 )
 
@@ -81,7 +79,9 @@ player_info <- tibble::tibble(
   "No"    = "No MD",
   "Rehab" = "Rehabilitación",
   ">-5"   = "MD >-5",
-  paste0("MD", .phase)
+  "Other" = "Entrenamiento",
+  "NA"    = "—",
+  .phase
 )
 
 ui <- fluidPage(
@@ -226,7 +226,7 @@ ui <- fluidPage(
                       tags$summary("Interpretación Índice de Carga", style = "font-weight:bold; font-size:16px;"),
                       "El índice de carga es el cociente de la carga aguda dividida por la carga crónica.",
                       tags$br(),
-                      "La carga aguda es la suma de la distancia absoluta de High Speed Running (HSR_abs_dist) y la carga del jugador (player_load), ambos datos capturados por WIMU.",
+                      "La carga aguda es la suma de la distancia absoluta de High Speed Running (HSR_abs_dist) y la carga del jugador (player_load), ambos datos capturados por Catapult.",
                       tags$br(),
                       "La carga crónica es la media rodante de los valores de carga aguda, calculada tomando en cuenta los últimos siete días de carga aguda.",
                       tags$br(),
@@ -336,7 +336,7 @@ server <- function(input, output, session) {
         y_plot = dplyr::if_else(is.na(ac_ratio), ACWR_MISSING_Y, ac_ratio),
         recovery_status = dplyr::if_else(recovery_score >= 6, "Recuperado", "Fatigado"),
         load_status = dplyr::case_when(
-          is.na(ac_ratio) ~ "Sin WIMU (sin ACWR)",
+          is.na(ac_ratio) ~ "Sin Catapult (sin ACWR)",
           ac_ratio < 0.8 ~ "Carga Baja",
           ac_ratio > 1.3 ~ "Carga Alta",
           TRUE ~ "Carga Óptima"
@@ -355,7 +355,7 @@ server <- function(input, output, session) {
           "<br>Fecha: ", latest_date,
           "<br>Score de Recuperación: ", recovery_score,
           ifelse(is.na(ac_ratio),
-                 "<br>ACWR: (Sin WIMU)",
+                 "<br>ACWR: (Sin Catapult)",
                  paste0("<br>Índice de Carga: ", round(ac_ratio, 2))),
           "<br>Estatus de Recuperación: ", recovery_status,
           "<br>Estatus de Carga: ", load_status,
@@ -477,7 +477,7 @@ server <- function(input, output, session) {
           ),
           list(
             x = 0.10, y = -0.14, xref = "paper", yref = "paper",
-            text = "<b>Línea punteada = Sin WIMU (sin ACWR)</b>",
+            text = "<b>Línea punteada = Sin Catapult (sin ACWR)</b>",
             showarrow = FALSE, xanchor = "left", yanchor = "top",
             font = list(size = 12)
           )
@@ -506,7 +506,7 @@ server <- function(input, output, session) {
           "<br>Fecha: ", latest_date,
           "<br>Score de Descanso: ", rest_score,
           ifelse(is.na(ac_ratio),
-                 "<br>ACWR: (Sin WIMU)",
+                 "<br>ACWR: (Sin Catapult)",
                  paste0("<br>Índice de Carga: ", round(ac_ratio, 2))),
           "<br>Estatus de Descanso: ", rest_status,
           "<br>Estatus de Carga: ", load_status
@@ -561,7 +561,7 @@ server <- function(input, output, session) {
           "<br>Fecha: ", latest_date,
           "<br>Score de Dolor Muscular: ", pain_score,
           ifelse(is.na(ac_ratio),
-                 "<br>ACWR: (Sin WIMU)",
+                 "<br>ACWR: (Sin Catapult)",
                  paste0("<br>Índice de Carga: ", round(ac_ratio, 2))),
           "<br>Estatus de Dolor Muscular: ", pain_status,
           "<br>Estatus de Carga: ", load_status,
@@ -633,7 +633,7 @@ server <- function(input, output, session) {
           } else "",
           "<br>RPE: ", rpe_val,
           ifelse(is.na(ac_ratio),
-                 "<br>ACWR: (Sin WIMU)",
+                 "<br>ACWR: (Sin Catapult)",
                  paste0("<br>Índice de Carga (ACWR): ", round(ac_ratio, 2))),
           if ("load_status" %in% names(df)) paste0("<br>Estatus de Carga: ", load_status) else ""
         )
@@ -681,7 +681,7 @@ server <- function(input, output, session) {
   
   output$hsr_plot <- renderPlotly({
     req(selected())
-    # If player has no WIMU data, plot_individual_hsr already returns a "no data" ggplot
+    # If player has no Catapult data, plot_individual_hsr already returns a "no data" ggplot
     up_to <- if (exists("micros_hsr", inherits = TRUE)) max(get("micros_hsr", inherits = TRUE)$date, na.rm = TRUE) else Sys.Date()
     
     p <- to_plotly(plot_individual_hsr(selected()), src = "hsr_plot")
@@ -694,7 +694,7 @@ server <- function(input, output, session) {
     # Guard for players without any micros_individual rows (e.g., GKs) since plot_individual_ac may assume data exists
     mi <- get("micros_individual", inherits = TRUE)
     if (!selected() %in% unique(mi$player)) {
-      return(ggplotly(empty_plot(paste("Sin datos WIMU para", selected())), tooltip = "text"))
+      return(ggplotly(empty_plot(paste("Sin datos Catapult para", selected())), tooltip = "text"))
     }
     
     up_to <- max(mi$date, na.rm = TRUE)

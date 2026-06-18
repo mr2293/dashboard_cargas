@@ -34,7 +34,7 @@ if (!exists("ACWR_MISSING_Y", inherits = TRUE)) {
 player_info <- tibble::tibble(
   player = c("Brian Rodríguez", "Sebastián Cáceres", "Alan Cervantes",
              "Rodolfo Cota", "Erick Sánchez", "Henry Martín", "Israel Reyes",
-             "Jonathan Dos Santos", "Kevin Álvarez", "Luis Ángel Malagón", "Miguel Vázquez",
+             "Kevin Álvarez", "Luis Ángel Malagón", "Miguel Vázquez",
              "Ramón Juárez", "Alejandro Zendejas", "Cristian Borja",
              "Dagoberto Espinoza", "Víctor Dávila", "Alexis Gutiérrez", "Isaías Violante", 
              "José Raúl Zúñiga", "Patricio Salas", "Raphael Veiga", "Fernando Tapia", 

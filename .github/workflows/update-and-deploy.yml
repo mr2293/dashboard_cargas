@@ -3,8 +3,8 @@ name: Update Google Sheet & Deploy Shiny App
 on:
   schedule:
     # GitHub Actions uses UTC.
-    # Cuestionario Bienestar: 09:45 America/Mexico_City (~UTC-6) ≈ 15:45 UTC
-    - cron: '45 15 * * *'
+    # Cuestionario Bienestar: 09:10 America/Mexico_City (~UTC-6) ≈ 15:10 UTC
+    - cron: '10 15 * * *'
     # RPE: 20:00 America/Mexico_City ≈ 02:00 UTC next day
     - cron: '0 2 * * *'
   workflow_dispatch:

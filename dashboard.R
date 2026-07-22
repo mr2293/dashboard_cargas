@@ -255,7 +255,7 @@ plot_player_recuperacion("Henry Martín")
 
 micros_shiny_comb <- read_csv("micros/micros_shiny_comb.csv") |>
   mutate(player = case_when(
-    player == "Pato Salas" ~ "Patricio Salas",
+    # player == "Pato Salas" ~ "Patricio Salas",
     player == "Miguel Ram’rez" ~ "Miguel Ramírez",
     player == "Miguel Ramirez" ~ "Miguel Ramírez",
     player == "Miguel  Vazquez" ~ "Miguel Vázquez",
@@ -267,11 +267,21 @@ micros_shiny_comb <- read_csv("micros/micros_shiny_comb.csv") |>
     player == "kevin alvarez" ~ "Kevin Álvarez",
     player == "Erick Sanchez" ~ "Erick Sánchez",
     player == "Brian Rodriguez" ~ "Brian Rodríguez",
-    player == "Victor Davila" ~ "Víctor Dávila",
-    player == "Aaron Mejia" ~ "Aaron Mejia",
+    player == "Alejandro Zendejas Saavedra" ~ "Alejandro Zendejas",
+    player == "Santiago Naveda Lara" ~ "Santiago Naveda",
+    player == "Dago Espinoza" ~ "Dagoberto Espinoza",
+    player == "Alejandro Cardenas" ~ "Alejandro Cárdenas",
+    player == "Alejandro Fernandez" ~ "Adrián Fernández",
+    player == "Guillermo Cortes" ~ "Guillermo Cortéz",
+    player == "Icaro Conceicao" ~ "Ícaro da Conceiçao",
+    player == "Ricardo Gonzalez" ~ "Ricardo González",
+    player == "Adrian Fernandez" ~ "Adrián Fernández",
     TRUE ~ player
   ),
   date = as.Date(date))
+
+jugs <- micros_shiny_comb |>
+  distinct(player, .keep_all = TRUE)
 
 # --- MD flag & minutes (per player/day) ---
 md_day_minutes <- micros_shiny_comb |>
@@ -326,8 +336,10 @@ selected_players <- c(
   "Isaías Violante","Alan Cervantes","Ramón Juárez","Erick Sánchez",
   "Brian Rodríguez","Kevin Álvarez","Dagoberto Espinoza","Víctor Dávila",
   "Cristian Borja","Alexis Gutiérrez", "Sebastián Cáceres","Miguel Vázquez",
-  "José Raúl Zúñiga", "Patricio Salas", "Raphael Veiga", "Thiago Espinosa", 
-  "Emilio Lara", "Franco Rossano"
+  "José Raúl Zúñiga", "Pato Salas", "Raphael Veiga", "Thiago Espinosa", 
+  "Emilio Lara", "Franco Rossano", "Santiago Naveda", "Alejandro Cárdenas",
+  "Adrián Fernández", "Guillermo Cortéz", "Ícaro da Conceiçao",
+  "Ricardo González", "Rodolfo Cota", "Luis Ángel Malagón", "Diego Arriaga"
 )
 
 # --- Build acute/chronic/ACWR and join MD info ---
@@ -630,13 +642,14 @@ plot_individual_hsr <- function(player) {
 # Example
 plot_individual_hsr("Rodrigo Dourado")
 
-jugs = c("Brian Rodríguez", "Sebastián Cáceres", "Alan Cervantes",
-         "Rodolfo Cota", "Erick Sánchez", "Henry Martín", "Israel Reyes",
-         "Kevin Álvarez", "Luis Ángel Malagón", "Miguel Vázquez",
-         "Ramón Juárez", "Alejandro Zendejas", "Cristian Borja",
-         "Dagoberto Espinoza", "Víctor Dávila", "Alexis Gutiérrez", 
-         "Isaías Violante", "José Raúl Zúñiga", "Patricio Salas", 
-         "Raphael Veiga", "Thiago Espinosa", "Emilio Lara", "Franco Rossano")
+jugs = c("Israel Reyes","Henry Martín","Alejandro Zendejas",
+         "Isaías Violante","Alan Cervantes","Ramón Juárez","Erick Sánchez",
+         "Brian Rodríguez","Kevin Álvarez","Dagoberto Espinoza","Víctor Dávila",
+         "Cristian Borja","Alexis Gutiérrez", "Sebastián Cáceres","Miguel Vázquez",
+         "José Raúl Zúñiga", "Pato Salas", "Raphael Veiga", "Thiago Espinosa", 
+         "Emilio Lara", "Franco Rossano", "Santiago Naveda", "Alejandro Cárdenas",
+         "Adrián Fernández", "Guillermo Cortéz", "Ícaro da Conceiçao",
+         "Ricardo González", "Rodolfo Cota", "Luis Ángel Malagón", "Diego Arriaga")
 
 ACWR_MISSING_Y <- 0.65
 
@@ -665,7 +678,7 @@ rpe_df <- rpe_raw |>
     player  = str_squish(player),
     
     player = case_when(
-      player == "Pato Salas" ~ "Patricio Salas",
+      # player == "Pato Salas" ~ "Patricio Salas",
       player == "Miguel  Vazquez" ~ "Miguel Vázquez",
       player == "Luis Ángel Malagón Velázquez" ~ "Luis Ángel Malagón",
       player == "Alexis Gutierrez" ~ "Alexis Gutiérrez",

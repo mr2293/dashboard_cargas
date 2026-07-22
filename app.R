@@ -39,7 +39,7 @@ player_info <- tibble::tibble(
              "Dagoberto Espinoza", "Víctor Dávila", "Alexis Gutiérrez", "Isaías Violante", 
              "José Raúl Zúñiga", "Patricio Salas", "Raphael Veiga", "Fernando Tapia", 
              "Thiago Espinosa", "Emilio Lara", "Franco Rossano", "Santiago Naveda", 
-             "Alejandro Cárdenas", "Adrián Fernández", "Guillermo Cortéz", "Ícaro da Conceiçao",
+             "Alejandro Cárdenas", "Adrián Fernández", "Guillermo Cortéz", "Ícaro da Conceicao",
              "Ricardo González", "Diego Arriaga"
              ),
   image = c("brian.jpg", "caceres.jpg", "cervantes.jpg", "cota.jpg",

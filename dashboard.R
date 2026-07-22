@@ -273,7 +273,7 @@ micros_shiny_comb <- read_csv("micros/micros_shiny_comb.csv") |>
     player == "Alejandro Cardenas" ~ "Alejandro Cárdenas",
     player == "Alejandro Fernandez" ~ "Adrián Fernández",
     player == "Guillermo Cortes" ~ "Guillermo Cortéz",
-    player == "Icaro Conceicao" ~ "Ícaro da Conceiçao",
+    player == "Icaro Conceicao" ~ "Ícaro da Conceicao",
     player == "Ricardo Gonzalez" ~ "Ricardo González",
     player == "Adrian Fernandez" ~ "Adrián Fernández",
     TRUE ~ player
@@ -338,7 +338,7 @@ selected_players <- c(
   "Cristian Borja","Alexis Gutiérrez", "Sebastián Cáceres","Miguel Vázquez",
   "José Raúl Zúñiga", "Pato Salas", "Raphael Veiga", "Thiago Espinosa", 
   "Emilio Lara", "Franco Rossano", "Santiago Naveda", "Alejandro Cárdenas",
-  "Adrián Fernández", "Guillermo Cortéz", "Ícaro da Conceiçao",
+  "Adrián Fernández", "Guillermo Cortéz", "Ícaro da Conceicao",
   "Ricardo González", "Rodolfo Cota", "Luis Ángel Malagón", "Diego Arriaga"
 )
 
@@ -648,7 +648,7 @@ jugs = c("Israel Reyes","Henry Martín","Alejandro Zendejas",
          "Cristian Borja","Alexis Gutiérrez", "Sebastián Cáceres","Miguel Vázquez",
          "José Raúl Zúñiga", "Pato Salas", "Raphael Veiga", "Thiago Espinosa", 
          "Emilio Lara", "Franco Rossano", "Santiago Naveda", "Alejandro Cárdenas",
-         "Adrián Fernández", "Guillermo Cortéz", "Ícaro da Conceiçao",
+         "Adrián Fernández", "Guillermo Cortéz", "Ícaro da Conceicao",
          "Ricardo González", "Rodolfo Cota", "Luis Ángel Malagón", "Diego Arriaga")
 
 ACWR_MISSING_Y <- 0.65

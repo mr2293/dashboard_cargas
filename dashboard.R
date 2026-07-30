@@ -1383,3 +1383,4 @@ build_nl_prompt <- function(scatter_data, micros_raw, micros_data, recuperacion_
     "PREGUNTA: ", question
   )
 }
+

@@ -40,7 +40,7 @@ player_info <- tibble::tibble(
              "José Raúl Zúñiga", "Patricio Salas", "Raphael Veiga", "Fernando Tapia", 
              "Emilio Lara", "Franco Rossano", "Santiago Naveda", 
              "Alejandro Cárdenas", "Adrián Fernández", "Guillermo Cortéz", "Ícaro da Conceicao",
-             "Ricardo González", "Diego Arriaga"
+             "Ricardo González", "Diego Arriaga", "Óscar Perea", "Edwin Cerrillo"
              ),
   image = c("brian.jpg", "caceres.jpg", "cervantes.jpg", "cota.jpg",
             "erick_sanchez.jpg", "henry.jpg", "israel_reyes.jpg",
@@ -48,7 +48,8 @@ player_info <- tibble::tibble(
             "zendejas.jpg", "borja.jpg", "dagoberto.jpg", "davila.jpg",
             "alexis_gtz.jpg", "violante.jpg", "zuniga.jpg", "pato_salas.jpg", "veiga.jpg",
             "tapia.jpg", "pelon.jpg", "rossano.jpg", "naveda.jpg",
-            "coco.jpg", "chiquis.jpg", "cortez.jpg", "icaro.jpg", "rica.jpg", "arriaga.jpg"
+            "coco.jpg", "chiquis.jpg", "cortez.jpg", "icaro.jpg", "rica.jpg", "arriaga.jpg",
+            "perea.webp", "cerrillo.webp"
             ),
   age = c("20/05/2000", "18/08/1999", "17/01/1998", "03/07/1987", "27/09/1999",
           "18/11/1992", "23/05/2000", "15/01/1999", "02/03/1997", "07/02/2004", "09/05/2001",
@@ -56,14 +57,15 @@ player_info <- tibble::tibble(
           "26/02/2000", "20/10/2003", "13/07/1994", "17/02/2004",
           "19/06/1995", "17/06/2001",
           "18/05/2002", "27/07/2005", "16/04/2001", "28/07/2006", "05/05/2006",
-          "17/02/2007", "23/05/2007", "14/04/2009", "30/04/2004"
+          "17/02/2007", "23/05/2007", "14/04/2009", "30/04/2004", "27/09/2005",
+          "03/10/2000"
           ),
   height = c("1.75 m", "1.80 m", "1.81 m", "1.83 m", "1.67 m",
             "1.77 m", "1.79 m", "1.76 m",
             "1.82 m", "1.85 m", "1.82 m", "1.70 m", "1.79 m", "1.80 m",
             "1.73 m", "1.75 m", "1.73 m", "1.80 m", "1.85 m", "1.76m", 
             "1.85 m", "1.87m", "1.79m", "1.78m", "1.89m", "1.69m",
-            "1.72m", "1.75m", "1.72m", "1.74m"
+            "1.72m", "1.75m", "1.72m", "1.74m", "1.74m", "1.75m"
             )
 )
 
